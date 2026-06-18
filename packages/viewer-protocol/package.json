@@ -1,0 +1,23 @@
+{
+  "name": "@rasterex/viewer-protocol",
+  "version": "0.0.1",
+  "description": "Shared protocol contract for Rasterex Viewer SDK and Canvas integrations.",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "UNLICENSED"
+}

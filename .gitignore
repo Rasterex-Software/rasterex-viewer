@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+packages/*/dist/
+
+# Local npm cache and packed test artifacts
+.npm-cache/
+*.tgz
+
+# Local docs/planning folder not intended for GitHub
+docs/
+
+# Local example app installs/builds
+react-canvas-test/node_modules/
+react-canvas-test/dist/
+react-test/node_modules/
+react-test/dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
