@@ -18,6 +18,12 @@ export interface DiagnosticEventMap {
     targetOrigin: string;
     error: unknown;
   };
+  "iframe.mount.slow": DiagnosticEventBase & {
+    viewerUrl: string;
+    targetOrigin: string;
+    timeoutMs: number;
+    message: string;
+  };
   "iframe.destroyed": DiagnosticEventBase;
   "handshake.complete": DiagnosticEventBase & {
     canvasVersion: string;
@@ -25,6 +31,10 @@ export interface DiagnosticEventMap {
   };
   "handshake.timeout": DiagnosticEventBase & {
     timeoutMs: number;
+  };
+  "handshake.slow": DiagnosticEventBase & {
+    timeoutMs: number;
+    message: string;
   };
   "compatibility.warning": DiagnosticEventBase & {
     reason: string;

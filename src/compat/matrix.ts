@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION, CAPABILITIES } from "@rasterex/viewer-protocol";
+import { PROTOCOL_VERSION, CAPABILITIES } from "../protocol/index.js";
 
 import { SDK_VERSION } from "../constants.js";
 

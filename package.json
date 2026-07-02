@@ -1,12 +1,13 @@
 {
-  "name": "@rasterex/viewer",
-  "version": "0.0.1",
-  "description": "Framework-independent Rasterex hosted viewer/demo iframe SDK.",
+  "name": "@aridian/viewer",
+  "version": "1.0.3",
+  "description": "Framework-independent Rasterex hosted viewer iframe SDK.",
   "type": "module",
   "sideEffects": false,
-  "workspaces": [
-    "packages/viewer-protocol"
-  ],
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,13 +22,14 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
   ],
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && npm run build:protocol && npm run build:sdk",
+    "build": "npm run clean && npm run build:sdk",
     "build:sdk": "tsc -p tsconfig.json",
-    "build:protocol": "tsc -p packages/viewer-protocol/tsconfig.json",
     "dev": "vite examples/vanilla"
   },
   "keywords": [
@@ -36,15 +38,9 @@
     "viewer",
     "iframe"
   ],
-  "license": "UNLICENSED",
-  "dependencies": {
-    "@rasterex/viewer-protocol": "0.0.1"
-  },
-  "bundledDependencies": [
-    "@rasterex/viewer-protocol"
-  ],
+  "license": "MIT",
   "devDependencies": {
     "typescript": "^5.4.5",
-    "vite": "^5.2.0"
+    "vite": "^8.0.16"
   }
 }

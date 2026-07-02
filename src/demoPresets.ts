@@ -1,1 +1,6 @@
-export { DEMO_VIEWER_PRESETS, takeoffDemo } from "./demo-presets.js";
+export {
+  DEMO_VIEWER_PRESETS,
+  betaViewerDemo,
+  sandboxCanvas,
+  takeoffDemo
+} from "./demo-presets.js";

@@ -1,8 +1,7 @@
-import { ERROR_CODES } from "@rasterex/viewer-protocol";
+import { ERROR_CODES } from "../protocol/index.js";
 
 import {
   createCommandTimeoutError,
-  createViewerNotReadyError,
   RasterexViewerError
 } from "../errors.js";
 import type {
@@ -16,6 +15,7 @@ import {
   type DomainEventUnsubscribe
 } from "../utils/DomainEventEmitter.js";
 import { createRequestId } from "../utils/createRequestId.js";
+import { requireReadyBroker as requireCanvasReadyBroker } from "./canvasBrokerCommands.js";
 
 export interface AnnotationRect {
   x: unknown;
@@ -58,6 +58,12 @@ export interface AnnotationEvent {
 
 export interface AnnotationDataItem {
   [key: string]: unknown;
+  guid?: string;
+  isMeasure?: boolean;
+  markupnumber?: number;
+  type?: number;
+  timestamp?: number;
+  data?: AnnotationRawData;
   Tool?: string | null;
 }
 
@@ -71,13 +77,57 @@ export interface GetAnnotationDataOptions {
 
 export interface GetAnnotationDataResult {
   filter: string;
-  requestId?: string;
+  requestId: string;
   items: AnnotationDataItem[];
+  count?: number;
 }
 
 export interface SelectAnnotationOptions {
   uniqueId?: string;
   guid?: string;
+}
+
+export type DeleteAnnotationOptions = SelectAnnotationOptions;
+
+export interface AnnotationVisibilityTargetOptions {
+  annotationIds: string[];
+  requestId?: string;
+  timeoutMs?: number;
+}
+
+export interface AnnotationVisibilityOptions extends AnnotationVisibilityTargetOptions {
+  visible?: boolean;
+}
+
+export interface AnnotationVisibilityResult {
+  success: boolean;
+  visible: boolean;
+  annotationIds: string[];
+  updatedCount: number;
+  missingAnnotationIds: string[];
+  requestId: string;
+  error?: "missing_annotation_ids" | "annotations_not_found" | string;
+}
+
+export interface CountPointModeOptions {
+  guid: string;
+  enabled: boolean;
+  requestId?: string;
+}
+
+export interface SaveAnnotationsOptions {
+  requestId?: string;
+  timeoutMs?: number;
+}
+
+export interface SaveAnnotationsResult {
+  success: boolean;
+  requestId: string;
+  error?: string;
+}
+
+export interface AutoSaveOptions {
+  enabled: boolean;
 }
 
 export interface AnnotationEventMap {
@@ -110,6 +160,23 @@ interface CanvasGetAnnotationDataPayload {
   filter?: string;
   requestId?: string;
   items?: AnnotationDataItem[];
+  count?: number;
+}
+
+interface CanvasAnnotationVisibilityPayload {
+  success?: boolean;
+  visible?: boolean;
+  annotationIds?: string[];
+  updatedCount?: number;
+  missingAnnotationIds?: string[];
+  requestId?: string;
+  error?: string;
+}
+
+interface CanvasSaveAnnotationsCompletePayload {
+  success?: boolean;
+  requestId?: string;
+  error?: string;
 }
 
 export class AnnotationsApi {
@@ -187,6 +254,167 @@ export class AnnotationsApi {
     broker.send("unselectAnnotation");
   }
 
+  delete(options: DeleteAnnotationOptions): void {
+    const broker = this.requireReadyBroker("deleteAnnotation");
+    broker.send("deleteAnnotation", {
+      uniqueId: options.uniqueId ?? options.guid
+    });
+  }
+
+  setCountPointMode(options: CountPointModeOptions): void {
+    const broker = this.requireReadyBroker("insertCountPointMode");
+    broker.send("insertCountPointMode", {
+      enabled: options.enabled,
+      guid: options.guid,
+      requestId: options.requestId ?? createRequestId()
+    });
+  }
+
+  save(options: SaveAnnotationsOptions = {}): Promise<SaveAnnotationsResult> {
+    const broker = this.requireReadyBroker("saveAnnotations");
+    const requestId = options.requestId ?? createRequestId();
+    const timeoutMs = options.timeoutMs ?? this.commandTimeoutMs;
+
+    return new Promise<SaveAnnotationsResult>((resolve, reject) => {
+      const cleanup = broker.on<CanvasSaveAnnotationsCompletePayload>(
+        "saveAnnotationsComplete",
+        (message) => {
+          const payload = message.payload;
+
+          if (!payload || payload.requestId !== requestId) {
+            return;
+          }
+
+          globalThis.clearTimeout(timeoutId);
+          cleanup();
+
+          if (typeof payload.success !== "boolean") {
+            reject(
+              createAnnotationError(
+                "saveAnnotations",
+                "Canvas returned invalid annotation save data.",
+                {
+                  requestId,
+                  payload
+                }
+              )
+            );
+            return;
+          }
+
+          if (payload.success === false) {
+            reject(
+              createAnnotationError(
+                "saveAnnotations",
+                payload.error ?? "Canvas annotation save failed.",
+                {
+                  requestId,
+                  payload
+                }
+              )
+            );
+            return;
+          }
+
+          resolve({
+            success: payload.success,
+            requestId: payload.requestId,
+            error: payload.error
+          });
+        }
+      );
+
+      const timeoutId = globalThis.setTimeout(() => {
+        cleanup();
+        reject(createCommandTimeoutError(requestId, "saveAnnotations", timeoutMs));
+      }, timeoutMs);
+
+      broker.send("saveAnnotations", {
+        requestId
+      });
+    });
+  }
+
+  setAutoSave(options: AutoSaveOptions): void {
+    const broker = this.requireReadyBroker("setAutoSave");
+    broker.send("setAutoSave", {
+      enabled: options.enabled
+    });
+  }
+
+  show(options: AnnotationVisibilityTargetOptions): Promise<AnnotationVisibilityResult> {
+    return this.setVisibility({
+      ...options,
+      visible: true
+    });
+  }
+
+  hide(options: AnnotationVisibilityTargetOptions): Promise<AnnotationVisibilityResult> {
+    return this.setVisibility({
+      ...options,
+      visible: false
+    });
+  }
+
+  setVisibility(
+    options: AnnotationVisibilityOptions
+  ): Promise<AnnotationVisibilityResult> {
+    const broker = this.requireReadyBroker("annotationVisibility");
+    const requestId = options.requestId ?? createRequestId();
+    const timeoutMs = options.timeoutMs ?? this.commandTimeoutMs;
+
+    return new Promise<AnnotationVisibilityResult>((resolve, reject) => {
+      const cleanup = broker.on<CanvasAnnotationVisibilityPayload>(
+        "annotationVisibilityChanged",
+        (message) => {
+          const payload = message.payload;
+
+          if (!payload || payload.requestId !== requestId) {
+            return;
+          }
+
+          globalThis.clearTimeout(timeoutId);
+          cleanup();
+
+          if (!isAnnotationVisibilityPayload(payload)) {
+            reject(
+              createAnnotationError(
+                "annotationVisibility",
+                "Canvas returned invalid annotation visibility data.",
+                {
+                  requestId,
+                  payload
+                }
+              )
+            );
+            return;
+          }
+
+          resolve({
+            success: payload.success,
+            visible: payload.visible,
+            annotationIds: payload.annotationIds,
+            updatedCount: payload.updatedCount,
+            missingAnnotationIds: payload.missingAnnotationIds,
+            requestId: payload.requestId,
+            error: payload.error
+          });
+        }
+      );
+
+      const timeoutId = globalThis.setTimeout(() => {
+        cleanup();
+        reject(createCommandTimeoutError(requestId, "annotationVisibility", timeoutMs));
+      }, timeoutMs);
+
+      broker.send("annotationVisibility", {
+        annotationIds: options.annotationIds,
+        visible: options.visible,
+        requestId
+      });
+    });
+  }
+
   getData(options: GetAnnotationDataOptions = {}): Promise<GetAnnotationDataResult> {
     const broker = this.requireReadyBroker("getAnnotationData");
     const requestId = options.requestId ?? createRequestId();
@@ -222,7 +450,8 @@ export class AnnotationsApi {
           resolve({
             filter: payload.filter ?? "all",
             requestId: payload.requestId,
-            items: payload.items
+            items: payload.items,
+            count: payload.count
           });
         }
       );
@@ -260,25 +489,12 @@ export class AnnotationsApi {
   }
 
   private requireReadyBroker(type: string): CanvasMessageBroker {
-    if (!this.getIsReady()) {
-      throw createViewerNotReadyError(
-        "RasterexViewer must be ready before using viewer.annotations.",
-        {
-          type
-        }
-      );
-    }
-
-    const broker = this.getBroker();
-
-    if (!broker) {
-      throw createViewerNotReadyError(
-        "Rasterex Canvas message broker is not available.",
-        {
-          type
-        }
-      );
-    }
+    const broker = requireCanvasReadyBroker({
+      getBroker: this.getBroker,
+      getIsReady: this.getIsReady,
+      type,
+      apiName: "viewer.annotations"
+    });
 
     this.connect();
     return broker;
@@ -298,4 +514,23 @@ function createAnnotationError(
       ...context
     }
   });
+}
+
+function isAnnotationVisibilityPayload(
+  payload: CanvasAnnotationVisibilityPayload
+): payload is Required<
+  Pick<
+    CanvasAnnotationVisibilityPayload,
+    "success" | "visible" | "annotationIds" | "updatedCount" | "missingAnnotationIds" | "requestId"
+  >
+> &
+  Pick<CanvasAnnotationVisibilityPayload, "error"> {
+  return (
+    typeof payload.success === "boolean" &&
+    typeof payload.visible === "boolean" &&
+    Array.isArray(payload.annotationIds) &&
+    typeof payload.updatedCount === "number" &&
+    Array.isArray(payload.missingAnnotationIds) &&
+    typeof payload.requestId === "string"
+  );
 }

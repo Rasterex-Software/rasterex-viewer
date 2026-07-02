@@ -1,7 +1,7 @@
 import type {
   MessageEnvelope,
   ProtocolIncomingMessage
-} from "@rasterex/viewer-protocol";
+} from "../protocol/index.js";
 
 import type { Diagnostics } from "../diagnostics.js";
 

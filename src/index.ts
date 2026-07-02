@@ -9,6 +9,16 @@ export { CanvasApi } from "./domains/CanvasApi.js";
 export { DocumentsApi } from "./domains/DocumentsApi.js";
 export { AnnotationsApi } from "./domains/AnnotationsApi.js";
 export {
+  MeasurementCalibrationApi,
+  MeasurementsApi,
+  MeasurementScaleApi
+} from "./domains/MeasurementsApi.js";
+export { CompareApi } from "./domains/CompareApi.js";
+export { CollaborationApi } from "./domains/CollaborationApi.js";
+export { StylesApi } from "./domains/StylesApi.js";
+export { LayersApi } from "./domains/LayersApi.js";
+export { BlocksApi } from "./domains/BlocksApi.js";
+export {
   ToolsApi,
   ToolsNavigationApi,
   ToolsStampsApi,
@@ -36,17 +46,17 @@ export { SDK_COMPATIBILITY_MATRIX } from "./compat/matrix.js";
 export {
   ERROR_CODES,
   ERROR_DETECTION_CONFIDENCE
-} from "@rasterex/viewer-protocol";
+} from "./protocol/index.js";
 export type {
   ErrorCode,
   ErrorDetectionConfidence
-} from "@rasterex/viewer-protocol";
+} from "./protocol/index.js";
 export type {
   ProtocolIncomingMessage,
   ViewerReadyMessage,
   CompatibilityResult,
   CompatibilityState
-} from "@rasterex/viewer-protocol";
+} from "./protocol/index.js";
 export type {
   DiagnosticEventBase,
   DiagnosticEventMap,
@@ -64,6 +74,9 @@ export type {
   CreateDocumentViewerOptions
 } from "./createDocumentViewer.js";
 export type {
+  DocumentExportOptions,
+  DocumentExportResult,
+  DocumentOpenFileOptions,
   DocumentOpenOptions,
   DocumentOpenResult,
   DocumentsApiOptions,
@@ -75,9 +88,19 @@ export type {
   DocumentOpenedEvent,
   DocumentOpeningEvent,
   DocumentPageChangedEvent,
+  PageManipulationAction,
+  PageManipulationOptions,
+  PageManipulationResult,
+  PageRange,
+  CanvasFileInfo,
   CanvasFileInfoPayload,
+  CanvasFileTab,
+  CanvasFileTabIcon,
   CanvasFileTabsPayload,
-  CanvasPageListPayload
+  CanvasPageListItem,
+  CanvasPageListPayload,
+  SelectPageOptions,
+  SetActiveFileByIndexOptions
 } from "./domains/DocumentsApi.js";
 export type {
   AnnotationDataFilter,
@@ -91,11 +114,115 @@ export type {
   AnnotationNormalizedData,
   AnnotationRawData,
   AnnotationRect,
+  AnnotationVisibilityOptions,
+  AnnotationVisibilityResult,
+  AnnotationVisibilityTargetOptions,
   AnnotationsApiOptions,
+  AutoSaveOptions,
+  CountPointModeOptions,
+  DeleteAnnotationOptions,
   GetAnnotationDataOptions,
   GetAnnotationDataResult,
+  SaveAnnotationsOptions,
+  SaveAnnotationsResult,
   SelectAnnotationOptions
 } from "./domains/AnnotationsApi.js";
+export type {
+  CompareAlignPayload,
+  CompareApiOptions,
+  CompareEventHandler,
+  CompareEventMap,
+  CompareEventName,
+  CompareEventUnsubscribe,
+  CompareProgressStartEvent,
+  CompareSaveOptions,
+  ComparisonErrorPayload,
+  ComparisonResult
+} from "./domains/CompareApi.js";
+export type {
+  CollaborationApiOptions,
+  CollaborationConfigPayload,
+  CollaborationEnableOptions,
+  CollaborationEventHandler,
+  CollaborationEventMap,
+  CollaborationEventName,
+  CollaborationEventUnsubscribe,
+  CollaborationTooltipConfig,
+  CollaborationUserPayload,
+  SetUserOptions,
+  SetUserResultPayload
+} from "./domains/CollaborationApi.js";
+export type {
+  AnnotationProperties,
+  AnnotationPropertiesResult,
+  GlobalAppearanceOptions,
+  GetAnnotationPropertiesOptions,
+  SetAnnotationPropertiesOptions,
+  StylesApiOptions
+} from "./domains/StylesApi.js";
+export type {
+  GetLayersOptions,
+  LayerDetails,
+  LayerItem,
+  LayerKind,
+  LayersApiOptions,
+  LayersEventHandler,
+  LayersEventMap,
+  LayersEventName,
+  LayersEventUnsubscribe,
+  LayersSnapshot,
+  SetLayerVisibilityOptions
+} from "./domains/LayersApi.js";
+export type {
+  BlockAttribute,
+  BlockAttributesSnapshot,
+  BlockBounds,
+  BlockDetails,
+  BlockDetailsItem,
+  BlockDetailsSnapshot,
+  BlockInsertDetails,
+  BlockItem,
+  BlocksApiOptions,
+  BlocksEventHandler,
+  BlocksEventMap,
+  BlocksEventName,
+  BlocksEventUnsubscribe,
+  BlocksSnapshot,
+  GetBlockAttributesOptions,
+  GetBlockDetailsOptions,
+  GetBlocksOptions,
+  SetBlockVisibilityOptions
+} from "./domains/BlocksApi.js";
+export type {
+  AddMeasurementScaleOptions,
+  CalibrationApplyOptions,
+  CalibrationCancelOptions,
+  CalibrationFinishedEvent,
+  CalibrationImperialSetOptions,
+  CalibrationMeasurementSystem,
+  CalibrationMetricSetOptions,
+  CalibrationScaleCalculatedEvent,
+  CalibrationSetOptions,
+  CalibrationStartOptions,
+  GetMeasurementScalesOptions,
+  MeasurementCalibrationEventHandler,
+  MeasurementCalibrationEventMap,
+  MeasurementCalibrationEventName,
+  MeasurementCalibrationEventUnsubscribe,
+  MeasurementScale,
+  MeasurementScaleEventHandler,
+  MeasurementScaleEventMap,
+  MeasurementScaleEventName,
+  MeasurementScaleEventUnsubscribe,
+  MeasurementScaleImperialUnit,
+  MeasurementScaleMetricUnit,
+  MeasurementScalePageRange,
+  MeasurementScalesSnapshot,
+  MeasurementsApiOptions,
+  MeasurementScaleUnit,
+  MeasurementScaleUnitSystem,
+  RequestMeasurementScalesOptions
+} from "./domains/MeasurementsApi.js";
 export type {
   CustomToolbarButtonOptions,
   CanvasToolControlOptions,

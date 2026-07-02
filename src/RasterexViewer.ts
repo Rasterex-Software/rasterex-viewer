@@ -7,9 +7,7 @@ import {
   SDK_VERSION
 } from "./constants.js";
 import {
-  createCanvasReadyTimeoutError,
   createCanvasIframeError,
-  createCanvasLoadTimeoutError,
   createContainerNotFoundError,
   createViewerNotReadyError
 } from "./errors.js";
@@ -20,13 +18,18 @@ import {
   VIEWER_READY_MESSAGE_TYPE,
   type Capability,
   type ViewerReadyMessage
-} from "@rasterex/viewer-protocol";
-import { IframeTransport } from "./messaging/IframeTransport.js";
-import { CanvasMessageBroker } from "./messaging/CanvasMessageBroker.js";
+} from "./protocol/index.js";
+import { ViewerMessagingSession } from "./messaging/ViewerMessagingSession.js";
 import { CanvasApi } from "./domains/CanvasApi.js";
 import { DocumentsApi } from "./domains/DocumentsApi.js";
 import { AnnotationsApi } from "./domains/AnnotationsApi.js";
 import { ToolsApi } from "./domains/ToolsApi.js";
+import { MeasurementsApi } from "./domains/MeasurementsApi.js";
+import { CompareApi } from "./domains/CompareApi.js";
+import { CollaborationApi } from "./domains/CollaborationApi.js";
+import { StylesApi } from "./domains/StylesApi.js";
+import { LayersApi } from "./domains/LayersApi.js";
+import { BlocksApi } from "./domains/BlocksApi.js";
 import { evaluateCompatibility } from "./utils/compatibility.js";
 import { createSdkInstanceId } from "./utils/createSdkInstanceId.js";
 import { deriveOrigin } from "./utils/deriveOrigin.js";
@@ -52,14 +55,19 @@ export class RasterexViewer {
   readonly documents: DocumentsApi;
   readonly annotations: AnnotationsApi;
   readonly tools: ToolsApi;
+  readonly measurements: MeasurementsApi;
+  readonly compare: CompareApi;
+  readonly collaboration: CollaborationApi;
+  readonly styles: StylesApi;
+  readonly layers: LayersApi;
+  readonly blocks: BlocksApi;
   private state: ViewerState = "idle";
   private iframe: HTMLIFrameElement | null = null;
   private mountPromise: Promise<void> | null = null;
   private readyPromise: Promise<void> | null = null;
   private readyCleanup: (() => void) | null = null;
   private readyReject: ((error: Error) => void) | null = null;
-  private transport: IframeTransport | null = null;
-  private canvasBroker: CanvasMessageBroker | null = null;
+  private messagingSession: ViewerMessagingSession | null = null;
   private canvasSessionId: string | null = null;
   private canvasVersion: string | null = null;
   private buildDate: string | null = null;
@@ -80,20 +88,49 @@ export class RasterexViewer {
     this.sdkInstanceId = createSdkInstanceId();
     this.diagnostics = new Diagnostics(options.debug ?? false);
     this.canvas = new CanvasApi({
-      getBroker: () => this.canvasBroker
+      getBroker: () => this.getCanvasBroker()
     });
     this.documents = new DocumentsApi({
-      getBroker: () => this.canvasBroker,
+      getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
     });
     this.annotations = new AnnotationsApi({
-      getBroker: () => this.canvasBroker,
+      getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
     });
     this.tools = new ToolsApi({
-      getBroker: () => this.canvasBroker,
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
+    this.measurements = new MeasurementsApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
+    this.compare = new CompareApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready"
+    });
+    this.collaboration = new CollaborationApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
+    this.styles = new StylesApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
+    this.layers = new LayersApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
+    this.blocks = new BlocksApi({
+      getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
     });
@@ -105,49 +142,16 @@ export class RasterexViewer {
     }
 
     const container = this.resolveContainer();
-    const iframe = document.createElement("iframe");
+    const iframe = this.createIframe();
     this.state = "mounting";
-    this.diagnostics.emit("iframe.mount.started", {
-      sdkInstanceId: this.sdkInstanceId,
-      timestamp: new Date().toISOString(),
-      viewerUrl: this.viewerUrl,
-      targetOrigin: this.targetOrigin,
-      timeoutMs: this.connectTimeoutMs
-    });
-
-    iframe.src = this.viewerUrl;
-    iframe.width = "100%";
-    iframe.height = "100%";
-    iframe.style.border = "0";
-    iframe.title = this.iframeTitle;
-
-    if (this.iframeClassName) {
-      iframe.className = this.iframeClassName;
-    }
-
-    if (this.iframeAttributes) {
-      for (const [name, value] of Object.entries(this.iframeAttributes)) {
-        iframe.setAttribute(name, value);
-      }
-    }
+    this.emitMountStarted();
 
     this.iframe = iframe;
     this.mountPromise = new Promise((resolve, reject) => {
       const fail = (error: Error) => {
         cleanup();
         this.state = "error";
-        this.diagnostics.emit("iframe.mount.failed", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          viewerUrl: this.viewerUrl,
-          targetOrigin: this.targetOrigin,
-          error
-        });
-        this.diagnostics.emit("transport.error", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          error
-        });
+        this.emitMountFailed(error);
 
         if (this.iframe === iframe) {
           this.iframe = null;
@@ -158,7 +162,7 @@ export class RasterexViewer {
       };
 
       const timeoutId = window.setTimeout(() => {
-        fail(createCanvasLoadTimeoutError(this.connectTimeoutMs));
+        this.emitMountSlow();
       }, this.connectTimeoutMs);
 
       const cleanup = () => {
@@ -171,27 +175,15 @@ export class RasterexViewer {
       const handleLoad = () => {
         cleanup();
         this.state = "mounted";
-        this.transport = new IframeTransport({
-          iframe,
-          targetOrigin: this.targetOrigin,
-          sdkInstanceId: this.sdkInstanceId,
-          diagnostics: this.diagnostics
-        });
-        this.transport.start();
-        this.canvasBroker = new CanvasMessageBroker({
-          iframe,
-          targetOrigin: this.targetOrigin,
-          sdkInstanceId: this.sdkInstanceId,
-          diagnostics: this.diagnostics
-        });
-        this.canvasBroker.start();
+        this.startMessaging(iframe);
+        this.documents.connect();
         this.annotations.connect();
-        this.diagnostics.emit("iframe.mount.resolved", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          viewerUrl: this.viewerUrl,
-          targetOrigin: this.targetOrigin
-        });
+        this.measurements.connect();
+        this.compare.connect();
+        this.collaboration.connect();
+        this.layers.connect();
+        this.blocks.connect();
+        this.emitMountResolved();
         resolve();
       };
 
@@ -212,7 +204,7 @@ export class RasterexViewer {
       return Promise.resolve();
     }
 
-    if (!this.iframe?.isConnected || !this.transport) {
+    if (!this.iframe?.isConnected || !this.messagingSession) {
       return Promise.reject(
         createViewerNotReadyError("RasterexViewer must be mounted before ready() is called.")
       );
@@ -222,6 +214,7 @@ export class RasterexViewer {
       return this.readyPromise;
     }
 
+    const messagingSession = this.messagingSession;
     this.state = "handshaking";
     this.readyPromise = new Promise((resolve, reject) => {
       let unsubscribe: (() => void) | null = null;
@@ -239,101 +232,28 @@ export class RasterexViewer {
       this.readyCleanup = cleanup;
       this.readyReject = reject;
 
-      const fail = (error: Error) => {
-        cleanup();
-        this.state = "error";
-        this.diagnostics.emit("handshake.timeout", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          timeoutMs: this.readyTimeoutMs
-        });
-        reject(error);
-      };
-
       const timeoutId = window.setTimeout(() => {
-        fail(createCanvasReadyTimeoutError(this.readyTimeoutMs));
+        this.emitHandshakeSlow();
       }, this.readyTimeoutMs);
 
       const completeCanvasReady = () => {
-        const reason = "Canvas emitted viewerReady using the current Canvas message structure without Protocol V1 handshake metadata.";
-        cleanup();
-        this.canvasSessionId = "canvas-session-unreported";
-        this.canvasVersion = null;
-        this.buildDate = null;
-        this.capabilities = [
-          CAPABILITIES.iframe,
-          CAPABILITIES.documentOpen
-        ];
-        this.minimumSdkVersion = null;
-        this.compatibility = {
-          state: "degraded",
-          reason
-        };
-        this.diagnostics.emit("compatibility.warning", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          reason
-        });
-        this.state = "ready";
-        this.diagnostics.emit("handshake.complete", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          canvasVersion: "current-canvas",
-          canvasSessionId: this.canvasSessionId
-        });
-        resolve();
+        this.completeCanvasBrokerReady(cleanup, resolve);
       };
 
-      unsubscribe = this.transport?.onMessage((message) => {
+      unsubscribe = messagingSession.transport.onMessage((message) => {
         if (!this.isViewerReadyMessage(message)) {
           return;
         }
 
-        cleanup();
-        this.canvasSessionId = message.canvasSessionId;
-        this.canvasVersion = message.canvasVersion;
-        this.buildDate = message.buildDate;
-        this.capabilities = message.capabilities;
-        this.minimumSdkVersion = message.minimumSdkVersion;
-        const compatibility = evaluateCompatibility({
-          protocolVersion: message.protocolVersion,
-          canvasVersion: message.canvasVersion,
-          minimumSdkVersion: message.minimumSdkVersion,
-          capabilities: message.capabilities
-        });
+        this.completeProtocolReady(message, cleanup, resolve, reject);
+      });
 
-        this.compatibility = compatibility.result;
-
-        if (compatibility.error) {
-          this.state = "error";
-          reject(compatibility.error);
-          return;
-        }
-
-        if (compatibility.result.state === "degraded") {
-          this.diagnostics.emit("compatibility.warning", {
-            sdkInstanceId: this.sdkInstanceId,
-            timestamp: new Date().toISOString(),
-            reason: compatibility.result.reason ?? "Canvas compatibility is degraded."
-          });
-        }
-
-        this.state = "ready";
-        this.diagnostics.emit("handshake.complete", {
-          sdkInstanceId: this.sdkInstanceId,
-          timestamp: new Date().toISOString(),
-          canvasVersion: message.canvasVersion,
-          canvasSessionId: message.canvasSessionId
-        });
-        resolve();
-      }) ?? null;
-
-      if (this.canvasBroker?.hasReceived("viewerReady")) {
+      if (messagingSession.canvasBroker.hasReceived("viewerReady")) {
         completeCanvasReady();
       } else {
-        unsubscribeCanvasReady = this.canvasBroker?.on("viewerReady", () => {
+        unsubscribeCanvasReady = messagingSession.canvasBroker.on("viewerReady", () => {
           completeCanvasReady();
-        }) ?? null;
+        });
       }
     });
 
@@ -358,11 +278,15 @@ export class RasterexViewer {
     this.readyPromise = null;
     this.readyCleanup = null;
     this.readyReject = null;
-    this.transport?.destroy();
-    this.transport = null;
+    this.documents.disconnect();
     this.annotations.disconnect();
-    this.canvasBroker?.destroy();
-    this.canvasBroker = null;
+    this.measurements.disconnect();
+    this.compare.disconnect();
+    this.collaboration.disconnect();
+    this.layers.disconnect();
+    this.blocks.disconnect();
+    this.messagingSession?.destroy();
+    this.messagingSession = null;
     this.state = "destroyed";
     this.diagnostics.emit("iframe.destroyed", {
       sdkInstanceId: this.sdkInstanceId,
@@ -415,6 +339,179 @@ export class RasterexViewer {
       Array.isArray(candidate.capabilities) &&
       typeof candidate.minimumSdkVersion === "string"
     );
+  }
+
+  private createIframe(): HTMLIFrameElement {
+    const iframe = document.createElement("iframe");
+
+    iframe.src = this.viewerUrl;
+    iframe.width = "100%";
+    iframe.height = "100%";
+    iframe.style.border = "0";
+    iframe.title = this.iframeTitle;
+
+    if (this.iframeClassName) {
+      iframe.className = this.iframeClassName;
+    }
+
+    if (this.iframeAttributes) {
+      for (const [name, value] of Object.entries(this.iframeAttributes)) {
+        iframe.setAttribute(name, value);
+      }
+    }
+
+    return iframe;
+  }
+
+  private startMessaging(iframe: HTMLIFrameElement): void {
+    this.messagingSession = new ViewerMessagingSession({
+      iframe,
+      targetOrigin: this.targetOrigin,
+      sdkInstanceId: this.sdkInstanceId,
+      diagnostics: this.diagnostics
+    });
+    this.messagingSession.start();
+  }
+
+  private completeCanvasBrokerReady(
+    cleanup: () => void,
+    resolve: () => void
+  ): void {
+    const reason = "Canvas emitted viewerReady using the Canvas broker message structure without Protocol V1 handshake metadata.";
+    cleanup();
+    this.canvasSessionId = "canvas-session-unreported";
+    this.canvasVersion = null;
+    this.buildDate = null;
+    this.capabilities = [
+      CAPABILITIES.iframe,
+      CAPABILITIES.documentOpen
+    ];
+    this.minimumSdkVersion = null;
+    this.compatibility = {
+      state: "degraded",
+      reason
+    };
+    this.emitCompatibilityWarning(reason);
+    this.state = "ready";
+    this.emitHandshakeComplete("current-canvas", this.canvasSessionId);
+    resolve();
+  }
+
+  private completeProtocolReady(
+    message: ViewerReadyMessage,
+    cleanup: () => void,
+    resolve: () => void,
+    reject: (error: Error) => void
+  ): void {
+    cleanup();
+    this.canvasSessionId = message.canvasSessionId;
+    this.canvasVersion = message.canvasVersion;
+    this.buildDate = message.buildDate;
+    this.capabilities = message.capabilities;
+    this.minimumSdkVersion = message.minimumSdkVersion;
+
+    const compatibility = evaluateCompatibility({
+      protocolVersion: message.protocolVersion,
+      canvasVersion: message.canvasVersion,
+      minimumSdkVersion: message.minimumSdkVersion,
+      capabilities: message.capabilities
+    });
+
+    this.compatibility = compatibility.result;
+
+    if (compatibility.error) {
+      this.state = "error";
+      reject(compatibility.error);
+      return;
+    }
+
+    if (compatibility.result.state === "degraded") {
+      this.emitCompatibilityWarning(
+        compatibility.result.reason ?? "Canvas compatibility is degraded."
+      );
+    }
+
+    this.state = "ready";
+    this.emitHandshakeComplete(message.canvasVersion, message.canvasSessionId);
+    resolve();
+  }
+
+  private emitMountStarted(): void {
+    this.diagnostics.emit("iframe.mount.started", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      viewerUrl: this.viewerUrl,
+      targetOrigin: this.targetOrigin,
+      timeoutMs: this.connectTimeoutMs
+    });
+  }
+
+  private emitMountResolved(): void {
+    this.diagnostics.emit("iframe.mount.resolved", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      viewerUrl: this.viewerUrl,
+      targetOrigin: this.targetOrigin
+    });
+  }
+
+  private emitMountFailed(error: Error): void {
+    this.diagnostics.emit("iframe.mount.failed", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      viewerUrl: this.viewerUrl,
+      targetOrigin: this.targetOrigin,
+      error
+    });
+    this.diagnostics.emit("transport.error", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      error
+    });
+  }
+
+  private emitMountSlow(): void {
+    this.diagnostics.emit("iframe.mount.slow", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      viewerUrl: this.viewerUrl,
+      targetOrigin: this.targetOrigin,
+      timeoutMs: this.connectTimeoutMs,
+      message: "Rasterex Canvas is still loading. The connection may be slow."
+    });
+  }
+
+  private emitHandshakeSlow(): void {
+    this.diagnostics.emit("handshake.slow", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      timeoutMs: this.readyTimeoutMs,
+      message: "Rasterex Canvas is still becoming ready. The connection may be slow."
+    });
+  }
+
+  private emitCompatibilityWarning(reason: string): void {
+    this.diagnostics.emit("compatibility.warning", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      reason
+    });
+  }
+
+  private emitHandshakeComplete(
+    canvasVersion: string,
+    canvasSessionId: string
+  ): void {
+    this.diagnostics.emit("handshake.complete", {
+      sdkInstanceId: this.sdkInstanceId,
+      timestamp: new Date().toISOString(),
+      canvasVersion,
+      canvasSessionId
+    });
+  }
+
+  private getCanvasBroker() {
+    return this.messagingSession?.canvasBroker ?? null;
   }
 
   private resolveContainer(): HTMLElement {

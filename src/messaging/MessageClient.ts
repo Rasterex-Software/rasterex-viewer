@@ -7,7 +7,7 @@ import {
   type ProtocolErrorPayload,
   type ProtocolIncomingMessage,
   type ResponseEnvelope
-} from "@rasterex/viewer-protocol";
+} from "../protocol/index.js";
 
 import { SDK_VERSION } from "../constants.js";
 import type { Diagnostics } from "../diagnostics.js";

@@ -1,6 +1,6 @@
+import type { SDK_NAME } from "./constants.js";
 import type { ProtocolErrorPayload } from "./errors.js";
 import type { ViewerReadyMessage } from "./handshake.js";
-import type { SDK_NAME } from "./constants.js";
 
 export interface MessageEnvelope<TPayload = unknown> {
   id?: string;

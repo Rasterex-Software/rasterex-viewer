@@ -1,7 +1,7 @@
 import {
   ERROR_CODES,
   type ErrorCode
-} from "@rasterex/viewer-protocol";
+} from "./protocol/index.js";
 
 import { SDK_VERSION } from "./constants.js";
 

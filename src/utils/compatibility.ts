@@ -1,9 +1,9 @@
 import type {
   Capability,
   CompatibilityResult
-} from "@rasterex/viewer-protocol";
+} from "../protocol/index.js";
 
-import { PROTOCOL_VERSION, ERROR_CODES } from "@rasterex/viewer-protocol";
+import { PROTOCOL_VERSION, ERROR_CODES } from "../protocol/index.js";
 import { SDK_VERSION } from "../constants.js";
 import { SDK_COMPATIBILITY_MATRIX } from "../compat/matrix.js";
 import { RasterexViewerError } from "../errors.js";
@@ -23,6 +23,36 @@ export interface CompatibilityEvaluation {
 export function evaluateCompatibility(
   options: EvaluateCompatibilityOptions
 ): CompatibilityEvaluation {
+  const invalidVersionField = getInvalidVersionField({
+    sdkVersion: SDK_VERSION,
+    protocolVersion: PROTOCOL_VERSION,
+    canvasProtocolVersion: options.protocolVersion,
+    canvasVersion: options.canvasVersion,
+    minimumSdkVersion: options.minimumSdkVersion
+  });
+
+  if (invalidVersionField) {
+    return {
+      result: {
+        state: "incompatible",
+        reason: `Invalid compatibility version value: ${invalidVersionField}.`
+      },
+      error: new RasterexViewerError({
+        code: ERROR_CODES.incompatibleCanvas,
+        message: `Invalid compatibility version value: ${invalidVersionField}.`,
+        canvasVersion: options.canvasVersion,
+        context: {
+          field: invalidVersionField,
+          sdkVersion: SDK_VERSION,
+          protocolVersion: PROTOCOL_VERSION,
+          canvasProtocolVersion: options.protocolVersion,
+          canvasVersion: options.canvasVersion,
+          minimumSdkVersion: options.minimumSdkVersion
+        }
+      })
+    };
+  }
+
   const matrixEntry = SDK_COMPATIBILITY_MATRIX.find(
     (entry) =>
       entry.sdkVersion === SDK_VERSION &&
@@ -134,6 +164,9 @@ export function evaluateCompatibility(
 }
 
 export function compareVersions(left: string, right: string): number {
+  assertVersion(left, "left");
+  assertVersion(right, "right");
+
   const leftParts = parseVersionParts(left);
   const rightParts = parseVersionParts(right);
   const length = Math.max(leftParts.length, rightParts.length);
@@ -152,6 +185,28 @@ export function compareVersions(left: string, right: string): number {
   }
 
   return 0;
+}
+
+function getInvalidVersionField(
+  versions: Record<string, string>
+): string | null {
+  for (const [field, version] of Object.entries(versions)) {
+    if (!isVersionString(version)) {
+      return field;
+    }
+  }
+
+  return null;
+}
+
+function assertVersion(version: string, label: string): void {
+  if (!isVersionString(version)) {
+    throw new RangeError(`${label} must be a dot-separated numeric version.`);
+  }
+}
+
+function isVersionString(version: string): boolean {
+  return /^\d+(?:\.\d+)*$/.test(version);
 }
 
 function parseVersionParts(version: string): number[] {

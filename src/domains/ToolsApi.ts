@@ -1,10 +1,3 @@
-import { ERROR_CODES } from "@rasterex/viewer-protocol";
-
-import {
-  createCommandTimeoutError,
-  createViewerNotReadyError,
-  RasterexViewerError
-} from "../errors.js";
 import {
   DomainEventEmitter,
   type DomainEventHandler,
@@ -14,6 +7,13 @@ import type {
   CanvasMessage,
   CanvasMessageBroker
 } from "../messaging/CanvasMessageBroker.js";
+import {
+  requireReadyBroker,
+  sendCanvasCommandWithResult,
+  sendCanvasFireAndForget,
+  type RequestPayload,
+  type RequestResultMessage
+} from "./canvasBrokerCommands.js";
 
 export type ToolGroup = "drawing" | "annotation" | "measurement";
 
@@ -251,18 +251,6 @@ export interface ToolsApiOptions {
   commandTimeoutMs: number;
 }
 
-interface RequestResultMessage<TPayload> extends CanvasMessage<TPayload> {
-  requestId?: string;
-  success?: boolean;
-  id?: string;
-  active?: boolean;
-}
-
-interface RequestPayload {
-  requestId?: string;
-  [key: string]: unknown;
-}
-
 export class ToolsApi {
   readonly navigation: ToolsNavigationApi;
   readonly threeD: ToolsThreeDApi;
@@ -311,27 +299,13 @@ export class ToolsApi {
   }
 
   private sendFireAndForget<TPayload>(type: string, payload: TPayload): void {
-    if (!this.getIsReady()) {
-      throw createViewerNotReadyError(
-        "RasterexViewer must be ready before using viewer.tools.",
-        {
-          type
-        }
-      );
-    }
-
-    const broker = this.getBroker();
-
-    if (!broker) {
-      throw createViewerNotReadyError(
-        "Rasterex Canvas message broker is not available.",
-        {
-          type
-        }
-      );
-    }
-
-    broker.send(type, payload);
+    sendCanvasFireAndForget({
+      getBroker: this.getBroker,
+      getIsReady: this.getIsReady,
+      type,
+      payload,
+      apiName: "viewer.tools"
+    });
   }
 
   private sendWithResult<TResult extends { success: boolean; error?: string }>(
@@ -346,7 +320,8 @@ export class ToolsApi {
       type,
       resultType,
       payload,
-      timeoutMs
+      timeoutMs,
+      apiName: "viewer.tools"
     });
   }
 }
@@ -372,7 +347,8 @@ export class ToolsNavigationApi {
         searchCaseSensitive: options.searchCaseSensitive,
         searchForward: options.searchForward
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 
@@ -387,7 +363,8 @@ export class ToolsNavigationApi {
         requestId: options.requestId,
         command: "clear"
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 }
@@ -464,14 +441,16 @@ export class ToolsThreeDApi {
         y: options.y,
         z: options.z
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 
   private ensureEventBridge(eventName: ToolsThreeDEventName): void {
     const broker = requireReadyBroker({
       ...this.options,
-      type: eventName
+      type: eventName,
+      apiName: "viewer.tools"
     });
 
     if (eventName === "partSelected" && !this.partSelectedCleanup) {
@@ -527,7 +506,8 @@ export class ToolsStampsApi {
         urls: options.urls,
         openStampPanel: options.openStampPanel
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 
@@ -543,7 +523,8 @@ export class ToolsStampsApi {
         requestId: options.requestId,
         command
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 }
@@ -579,7 +560,8 @@ export class ToolsSymbolsApi {
         requestId: options.requestId,
         command
       },
-      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs
+      timeoutMs: options.timeoutMs ?? this.options.commandTimeoutMs,
+      apiName: "viewer.tools"
     });
   }
 }
@@ -596,14 +578,16 @@ export class ToolsToolbarApi {
   addButton(options: CustomToolbarButtonOptions): void {
     requireReadyBroker({
       ...this.options,
-      type: "addToolbarButton"
+      type: "addToolbarButton",
+      apiName: "viewer.tools"
     }).send("addToolbarButton", options);
   }
 
   removeButton(options: RemoveToolbarButtonOptions): void {
     requireReadyBroker({
       ...this.options,
-      type: "removeToolbarButton"
+      type: "removeToolbarButton",
+      apiName: "viewer.tools"
     }).send("removeToolbarButton", options);
   }
 
@@ -614,7 +598,8 @@ export class ToolsToolbarApi {
     if (eventName === "click" && !this.clickCleanup) {
       this.clickCleanup = requireReadyBroker({
         ...this.options,
-        type: "toolbarClick"
+        type: "toolbarClick",
+        apiName: "viewer.tools"
       }).on("toolbarClick", (message) => {
         const toolbarMessage = message as RequestResultMessage<unknown>;
         const id = toolbarMessage.id;
@@ -632,121 +617,3 @@ export class ToolsToolbarApi {
   }
 }
 
-function sendCanvasCommandWithResult<TResult extends { success: boolean; error?: string }>(
-  options: Pick<ToolsApiOptions, "getBroker" | "getIsReady"> & {
-    type: string;
-    resultType: string;
-    payload: RequestPayload;
-    timeoutMs: number;
-  }
-): Promise<TResult> {
-  const broker = requireReadyBroker(options);
-  const requestId = options.payload.requestId ?? createLocalRequestId(options.type);
-  const payload = {
-    ...options.payload,
-    requestId
-  };
-
-  return new Promise<TResult>((resolve, reject) => {
-    const cleanup = broker.on<TResult>(options.resultType, (message) => {
-      const resultMessage = message as RequestResultMessage<TResult>;
-      const resultPayload = resultMessage.payload as
-        | (TResult & { requestId?: string })
-        | undefined;
-      const payloadRequestId = resultPayload?.requestId;
-      const topLevelRequestId = resultMessage.requestId;
-
-      if (
-        topLevelRequestId &&
-        topLevelRequestId !== requestId &&
-        payloadRequestId !== requestId
-      ) {
-        return;
-      }
-
-      if (
-        payloadRequestId &&
-        payloadRequestId !== requestId &&
-        topLevelRequestId !== requestId
-      ) {
-        return;
-      }
-
-      globalThis.clearTimeout(timeoutId);
-      cleanup();
-
-      if (!message.payload) {
-        reject(createCanvasToolError(options.type, "Canvas returned an empty tool result."));
-        return;
-      }
-
-      if (message.payload.success === false) {
-        reject(
-          createCanvasToolError(
-            options.type,
-            message.payload.error ?? "Canvas tool command failed.",
-            {
-              requestId,
-              result: message.payload
-            }
-          )
-        );
-        return;
-      }
-
-      resolve(message.payload);
-    });
-
-    const timeoutId = globalThis.setTimeout(() => {
-      cleanup();
-      reject(createCommandTimeoutError(requestId, options.type, options.timeoutMs));
-    }, options.timeoutMs);
-
-    broker.send(options.type, payload);
-  });
-}
-
-function requireReadyBroker(
-  options: Pick<ToolsApiOptions, "getBroker" | "getIsReady"> & { type: string }
-): CanvasMessageBroker {
-  if (!options.getIsReady()) {
-    throw createViewerNotReadyError(
-      "RasterexViewer must be ready before using viewer.tools.",
-      {
-        type: options.type
-      }
-    );
-  }
-
-  const broker = options.getBroker();
-
-  if (!broker) {
-    throw createViewerNotReadyError(
-      "Rasterex Canvas message broker is not available.",
-      {
-        type: options.type
-      }
-    );
-  }
-
-  return broker;
-}
-
-function createCanvasToolError(
-  type: string,
-  message: string,
-  context?: Record<string, unknown>
-): RasterexViewerError {
-  return new RasterexViewerError({
-    code: ERROR_CODES.unknownCommand,
-    message,
-    context: {
-      type,
-      ...context
-    }
-  });
-}
-
-function createLocalRequestId(type: string): string {
-  return `tools-${type}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
