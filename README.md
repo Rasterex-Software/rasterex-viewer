@@ -90,20 +90,6 @@ The file URL must be reachable by the viewer environment.
 
 `cacheId` should be a stable file/content ID from your application or server, not the display file name. It lets the server reuse already processed content for the same file, which can make repeat opens faster.
 
-## Open A Browser File
-
-```ts
-const input = document.querySelector<HTMLInputElement>("#file-input");
-const file = input?.files?.[0];
-const fileId = "file_7f3a9c2_sample_pdf";
-
-if (file) {
-  await viewer.documents.openFile(file, {
-    cacheId: fileId
-  });
-}
-```
-
 ## Mount And Open In One Call
 
 ```ts

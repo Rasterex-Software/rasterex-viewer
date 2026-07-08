@@ -1,6 +1,6 @@
 {
-  "name": "@aridian/viewer",
-  "version": "1.0.3",
+  "name": "@rasterex/viewer",
+  "version": "1.0.0",
   "description": "Framework-independent Rasterex hosted viewer iframe SDK.",
   "type": "module",
   "sideEffects": false,
