@@ -63,12 +63,20 @@ export interface CompareEventMap {
   comparisonComplete: ComparisonResult | undefined;
   comparisonError: ComparisonErrorPayload;
   compareSaveComplete: string | undefined;
+  comparisonMarkupChanged: boolean;
 }
 
 export type CompareEventName = keyof CompareEventMap;
 export type CompareEventHandler<TEventName extends CompareEventName> =
   DomainEventHandler<CompareEventMap[TEventName]>;
 export type CompareEventUnsubscribe = DomainEventUnsubscribe;
+type ComparePendingCommand = "compare" | "align" | "compareSave";
+
+interface PendingCompareCommand {
+  type: ComparePendingCommand;
+  waitsForInteractiveAlignResult: boolean;
+  completed: boolean;
+}
 
 export interface CompareApiOptions {
   getBroker: () => CanvasMessageBroker | null;
@@ -80,6 +88,7 @@ export class CompareApi {
   private readonly events = new DomainEventEmitter<CompareEventMap>();
   private broker: CanvasMessageBroker | null = null;
   private brokerCleanups: CanvasMessageUnsubscribe[] = [];
+  private pendingCommand: PendingCompareCommand | null = null;
 
   constructor(options: CompareApiOptions) {
     this.options = options;
@@ -110,17 +119,54 @@ export class CompareApi {
       }),
       broker.on("progressEnd", () => {
         this.events.emit("progressEnd", undefined);
+        if (
+          this.pendingCommand &&
+          !this.pendingCommand.waitsForInteractiveAlignResult &&
+          this.pendingCommand.completed
+        ) {
+          this.clearPendingCommand();
+        }
       }),
       broker.on<ComparisonResult>("comparisonComplete", (message) => {
         this.events.emit("comparisonComplete", message.payload);
+        if (
+          this.pendingCommand?.type === "align" &&
+          this.pendingCommand.waitsForInteractiveAlignResult &&
+          message.payload
+        ) {
+          this.clearPendingCommand();
+          return;
+        }
+
+        if (
+          this.pendingCommand?.type === "compare" ||
+          (this.pendingCommand?.type === "align" &&
+            !this.pendingCommand.waitsForInteractiveAlignResult)
+        ) {
+          this.pendingCommand.completed = true;
+        }
       }),
       broker.on<ComparisonErrorPayload>("comparisonError", (message) => {
         if (isComparisonErrorPayload(message.payload)) {
           this.events.emit("comparisonError", message.payload);
+          if (
+            this.pendingCommand?.type === "compare" ||
+            this.pendingCommand?.type === "align"
+          ) {
+            this.clearPendingCommand();
+          }
         }
       }),
       broker.on<string>("compareSaveComplete", (message) => {
         this.events.emit("compareSaveComplete", message.payload);
+        if (this.pendingCommand?.type === "compareSave") {
+          this.pendingCommand.completed = true;
+        }
+      }),
+      broker.on<boolean>("comparisonMarkupChanged", (message) => {
+        if (typeof message.payload === "boolean") {
+          this.events.emit("comparisonMarkupChanged", message.payload);
+        }
       })
     ];
   }
@@ -132,16 +178,17 @@ export class CompareApi {
 
     this.brokerCleanups = [];
     this.broker = null;
+    this.clearPendingCommand();
   }
 
   compare(payload: CompareAlignPayload): void {
     this.validateCompareAlignPayload("compare", payload);
-    this.send("compare", payload);
+    this.send("compare", payload, false);
   }
 
   align(payload: CompareAlignPayload): void {
     this.validateCompareAlignPayload("align", payload);
-    this.send("align", payload);
+    this.send("align", payload, isInteractiveAlignPayload(payload));
   }
 
   save(options: CompareSaveOptions | string = {}): void {
@@ -187,15 +234,49 @@ export class CompareApi {
       );
     }
 
-    this.send("compareSave", payload);
+    this.send("compareSave", payload, false);
   }
 
-  private send(type: "compare" | "align" | "compareSave", payload: unknown): void {
-    requireReadyBroker({
-      ...this.options,
+  private send(
+    type: ComparePendingCommand,
+    payload: unknown,
+    waitsForInteractiveAlignResult: boolean
+  ): void {
+    this.requireNoPendingCommand(type);
+    this.pendingCommand = {
       type,
-      apiName: "viewer.compare"
-    }).send(type, payload);
+      waitsForInteractiveAlignResult,
+      completed: false
+    };
+
+    try {
+      requireReadyBroker({
+        ...this.options,
+        type,
+        apiName: "viewer.compare"
+      }).send(type, payload);
+    } catch (error) {
+      this.clearPendingCommand();
+      throw error;
+    }
+  }
+
+  private requireNoPendingCommand(type: ComparePendingCommand): void {
+    if (!this.pendingCommand) {
+      return;
+    }
+
+    throw createCanvasCommandError(
+      type,
+      `Cannot send ${type} while ${this.pendingCommand.type} is still pending.`,
+      {
+        pendingType: this.pendingCommand.type
+      }
+    );
+  }
+
+  private clearPendingCommand(): void {
+    this.pendingCommand = null;
   }
 
   private validateCompareAlignPayload(
@@ -330,6 +411,10 @@ function isHexColor(value: string): boolean {
 
 function isRgbColor(value: string): boolean {
   return /^rgb\(\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*\)$/.test(value);
+}
+
+function isInteractiveAlignPayload(payload: CompareAlignPayload): boolean {
+  return !payload.alignArray || payload.alignArray.length < 2;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
