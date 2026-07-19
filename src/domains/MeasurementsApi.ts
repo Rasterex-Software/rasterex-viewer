@@ -91,10 +91,23 @@ export type MeasurementScaleEventUnsubscribe = DomainEventUnsubscribe;
 
 export type CalibrationMeasurementSystem = 1 | 2;
 
-export interface CalibrationStartOptions {
+export interface CalibrationMetricStartOptions {
   requestId?: string;
   fileIndex?: number;
+  measurementSystem: 1;
+  metricUnit: MeasurementScaleMetricUnit;
 }
+
+export interface CalibrationImperialStartOptions {
+  requestId?: string;
+  fileIndex?: number;
+  measurementSystem: 2;
+  metricUnit: "Feet";
+}
+
+export type CalibrationStartOptions =
+  | CalibrationMetricStartOptions
+  | CalibrationImperialStartOptions;
 
 export interface CalibrationCancelOptions {
   requestId?: string;
@@ -117,8 +130,6 @@ export interface CalibrationMetricSetOptions {
   metricUnit: MeasurementScaleMetricUnit;
   calibrateCorrectionMetricValue: number | string;
   dimPrecision: number;
-  pageRanges?: MeasurementScalePageRange[];
-  totalPages?: number;
   timeoutMs?: number;
 }
 
@@ -126,11 +137,10 @@ export interface CalibrationImperialSetOptions {
   requestId?: string;
   fileIndex?: number;
   measurementSystem: 2;
-  calibrateCorrectionFeetValue?: number | string;
-  calibrateCorrectionInchValue?: number | string;
+  metricUnit: "Feet";
+  feet?: number | string;
+  inches?: number | string;
   dimPrecision: number;
-  pageRanges?: MeasurementScalePageRange[];
-  totalPages?: number;
   timeoutMs?: number;
 }
 
@@ -142,15 +152,11 @@ type CalibrationSetPayload = {
   requestId: string;
   fileIndex?: number;
   measurementSystem: CalibrationMeasurementSystem;
-  metricUnit?: MeasurementScaleMetricUnit;
+  metricUnit: MeasurementScaleUnit;
   calibrateCorrectionMetricValue?: number;
-  calibrateCorrectionFeetValue?: number;
-  calibrateCorrectionInchValue?: number;
+  feet?: number;
+  inches?: number;
   dimPrecision: number;
-  precision: number;
-  precisionValue: number;
-  pageRanges?: MeasurementScalePageRange[];
-  totalPages?: number;
 };
 
 export interface CalibrationScaleCalculatedEvent {
@@ -374,17 +380,19 @@ export class MeasurementCalibrationApi {
     this.broker = null;
   }
 
-  start(options: CalibrationStartOptions = {}): string {
+  start(options: CalibrationStartOptions): string {
     const requestId = options.requestId ?? createRequestId();
-    this.requireAvailableRequest(requestId, "startCalibrationV2");
+    this.requireAvailableRequest(requestId, "calibrationStart");
 
     requireReadyBroker({
       ...this.options,
-      type: "startCalibrationV2",
+      type: "calibrationStart",
       apiName: "viewer.measurements.calibration"
-    }).send("startCalibrationV2", {
+    }).send("calibrationStart", {
       requestId,
-      fileIndex: options.fileIndex
+      fileIndex: options.fileIndex,
+      measurementSystem: options.measurementSystem,
+      metricUnit: options.metricUnit
     });
 
     this.activeRequestId = requestId;
@@ -395,12 +403,12 @@ export class MeasurementCalibrationApi {
   calculate(options: CalibrationSetOptions): Promise<CalibrationScaleCalculatedEvent> {
     const broker = requireReadyBroker({
       ...this.options,
-      type: "setCalibrationV2",
+      type: "calibrationSet",
       apiName: "viewer.measurements.calibration"
     });
     const requestId = options.requestId ?? createRequestId();
     const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
-    this.requireAvailableRequest(requestId, "setCalibrationV2");
+    this.requireAvailableRequest(requestId, "calibrationSet");
     const payload = this.createCalibrationSetPayload(options, requestId);
     this.activeRequestId = requestId;
 
@@ -425,26 +433,26 @@ export class MeasurementCalibrationApi {
       const timeoutId = globalThis.setTimeout(() => {
         cleanup();
         this.clearActiveRequest(requestId);
-        reject(createCommandTimeoutError(requestId, "setCalibrationV2", timeoutMs));
+        reject(createCommandTimeoutError(requestId, "calibrationSet", timeoutMs));
       }, timeoutMs);
 
-      broker.send("setCalibrationV2", payload);
+      broker.send("calibrationSet", payload);
     });
   }
 
   apply(options: CalibrationApplyOptions = {}): Promise<MeasurementScalesSnapshot> {
     const broker = requireReadyBroker({
       ...this.options,
-      type: "addCalibrationScaleV2",
+      type: "calibrationAddScale",
       apiName: "viewer.measurements.calibration"
     });
     const requestId = options.requestId ?? createRequestId();
     const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
-    this.requireAvailableRequest(requestId, "addCalibrationScaleV2");
+    this.requireAvailableRequest(requestId, "calibrationAddScale");
 
     if (options.scale && !isMeasurementScale(options.scale)) {
       throw createCanvasCommandError(
-        "addCalibrationScaleV2",
+        "calibrationAddScale",
         "Calibration apply scale requires label, value, metric, metricUnit, dimPrecision, and isSelected.",
         {
           scale: options.scale
@@ -477,19 +485,23 @@ export class MeasurementCalibrationApi {
       const timeoutId = globalThis.setTimeout(() => {
         cleanup();
         this.clearActiveRequest(requestId);
-        reject(createCommandTimeoutError(requestId, "addCalibrationScaleV2", timeoutMs));
+        reject(createCommandTimeoutError(requestId, "calibrationAddScale", timeoutMs));
       }, timeoutMs);
 
-      broker.send("addCalibrationScaleV2");
+      broker.send("calibrationAddScale", {
+        requestId,
+        fileIndex: options.fileIndex,
+        scale: options.scale
+      });
     });
   }
 
   cancel(options: CalibrationCancelOptions = {}): void {
     requireReadyBroker({
       ...this.options,
-      type: "cancelCalibration",
+      type: "calibrationCancel",
       apiName: "viewer.measurements.calibration"
-    }).send("cancelCalibration", {
+    }).send("calibrationCancel", {
       requestId: options.requestId,
       fileIndex: options.fileIndex
     });
@@ -508,7 +520,7 @@ export class MeasurementCalibrationApi {
     if (options.measurementSystem === 1) {
       if (!isMetricUnit(options.metricUnit)) {
         throw createCanvasCommandError(
-          "setCalibrationV2",
+          "calibrationSet",
           "Metric calibration requires a supported metricUnit.",
           {
             options
@@ -520,7 +532,7 @@ export class MeasurementCalibrationApi {
 
       if (metricValue === null || metricValue <= 0) {
         throw createCanvasCommandError(
-          "setCalibrationV2",
+          "calibrationSet",
           "Metric calibration requires a positive finite calibrateCorrectionMetricValue.",
           {
             options
@@ -535,24 +547,20 @@ export class MeasurementCalibrationApi {
         metricUnit: options.metricUnit,
         calibrateCorrectionMetricValue: metricValue,
         dimPrecision: options.dimPrecision,
-        precision: options.dimPrecision,
-        precisionValue: options.dimPrecision,
-        pageRanges: options.pageRanges,
-        totalPages: options.totalPages
       };
     }
 
-    const feet = parseFiniteNumber(options.calibrateCorrectionFeetValue);
-    const inches = parseFiniteNumber(options.calibrateCorrectionInchValue);
+    const feet = parseFiniteNumber(options.feet);
+    const inches = parseFiniteNumber(options.inches);
 
     if (
-      (options.calibrateCorrectionFeetValue !== undefined && feet === null) ||
-      (options.calibrateCorrectionInchValue !== undefined && inches === null) ||
+      (options.feet !== undefined && feet === null) ||
+      (options.inches !== undefined && inches === null) ||
       (feet !== null && feet < 0) ||
       (inches !== null && inches < 0)
     ) {
       throw createCanvasCommandError(
-        "setCalibrationV2",
+        "calibrationSet",
         "Imperial calibration feet and inches must be finite non-negative numbers.",
         {
           options
@@ -562,8 +570,8 @@ export class MeasurementCalibrationApi {
 
     if ((feet ?? 0) <= 0 && (inches ?? 0) <= 0) {
       throw createCanvasCommandError(
-        "setCalibrationV2",
-        "Imperial calibration requires calibrateCorrectionFeetValue or calibrateCorrectionInchValue greater than zero.",
+        "calibrationSet",
+        "Imperial calibration requires feet or inches greater than zero.",
         {
           options
         }
@@ -574,20 +582,17 @@ export class MeasurementCalibrationApi {
       requestId,
       fileIndex: options.fileIndex,
       measurementSystem: 2,
-      calibrateCorrectionFeetValue: feet ?? undefined,
-      calibrateCorrectionInchValue: inches ?? undefined,
+      metricUnit: options.metricUnit,
+      feet: feet ?? undefined,
+      inches: inches ?? undefined,
       dimPrecision: options.dimPrecision,
-      precision: options.dimPrecision,
-      precisionValue: options.dimPrecision,
-      pageRanges: options.pageRanges,
-      totalPages: options.totalPages
     };
   }
 
   private validateCommonCalibrationSet(options: CalibrationSetOptions): void {
     if (!Number.isInteger(options.dimPrecision) || options.dimPrecision < 0) {
       throw createCanvasCommandError(
-        "setCalibrationV2",
+        "calibrationSet",
         "Calibration dimPrecision must be a non-negative integer.",
         {
           options
@@ -595,44 +600,6 @@ export class MeasurementCalibrationApi {
       );
     }
 
-    if (
-      options.totalPages !== undefined &&
-      (!Number.isInteger(options.totalPages) || options.totalPages < 1)
-    ) {
-      throw createCanvasCommandError(
-        "setCalibrationV2",
-        "Calibration totalPages must be a positive integer when provided.",
-        {
-          options
-        }
-      );
-    }
-
-    if (!options.pageRanges) {
-      return;
-    }
-
-    for (const pageRange of options.pageRanges) {
-      const [start, end] = pageRange;
-
-      if (
-        !Array.isArray(pageRange) ||
-        pageRange.length !== 2 ||
-        !Number.isInteger(start) ||
-        !Number.isInteger(end) ||
-        start < 1 ||
-        end < start ||
-        (options.totalPages !== undefined && end > options.totalPages)
-      ) {
-        throw createCanvasCommandError(
-          "setCalibrationV2",
-          "Calibration pageRanges must contain 1-based inclusive [start, end] integer ranges within totalPages when provided.",
-          {
-            options
-          }
-        );
-      }
-    }
   }
 
   private requireAvailableRequest(requestId: string, type: string): void {
