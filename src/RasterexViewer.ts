@@ -150,6 +150,8 @@ export class RasterexViewer {
     this.mountPromise = new Promise((resolve, reject) => {
       const fail = (error: Error) => {
         cleanup();
+        this.messagingSession?.destroy();
+        this.messagingSession = null;
         this.state = "error";
         this.emitMountFailed(error);
 
@@ -175,7 +177,6 @@ export class RasterexViewer {
       const handleLoad = () => {
         cleanup();
         this.state = "mounted";
-        this.startMessaging(iframe);
         this.documents.connect();
         this.annotations.connect();
         this.measurements.connect();
@@ -193,6 +194,7 @@ export class RasterexViewer {
 
       iframe.addEventListener("load", handleLoad);
       iframe.addEventListener("error", handleError);
+      this.startMessaging(iframe);
       container.appendChild(iframe);
     });
 

@@ -14,14 +14,7 @@ import {
 import { createCommandTimeoutError } from "../errors.js";
 import { createRequestId } from "../utils/createRequestId.js";
 
-export type MeasurementScaleUnitSystem =
-  | "0"
-  | "1"
-  | "METRIC"
-  | "IMPERIAL"
-  | 0
-  | 1
-  | 2;
+export type MeasurementScaleUnitSystem = string | number;
 
 export type MeasurementScaleMetricUnit =
   | "Millimeter"
@@ -37,11 +30,9 @@ export type MeasurementScaleImperialUnit =
   | "Mile"
   | "Nautical Miles";
 
-export type MeasurementScaleUnit =
-  | MeasurementScaleMetricUnit
-  | MeasurementScaleImperialUnit;
+export type MeasurementScaleUnit = string;
 
-export type MeasurementScalePageRange = [number, number];
+export type MeasurementScalePageRange = number[];
 
 export interface MeasurementScale {
   label: string;
@@ -89,29 +80,27 @@ export type MeasurementScaleEventHandler<TEventName extends MeasurementScaleEven
   DomainEventHandler<MeasurementScaleEventMap[TEventName]>;
 export type MeasurementScaleEventUnsubscribe = DomainEventUnsubscribe;
 
-export type CalibrationMeasurementSystem = 1 | 2;
+export type CalibrationMeasurementSystem = string | number;
 
-export interface CalibrationMetricStartOptions {
+export interface CalibrationStartOptions {
   requestId?: string;
   fileIndex?: number;
-  measurementSystem: 1;
-  metricUnit: MeasurementScaleMetricUnit;
+  measurementSystem?: CalibrationMeasurementSystem;
+  metricType?: CalibrationMeasurementSystem;
+  system?: CalibrationMeasurementSystem;
+  metric?: CalibrationMeasurementSystem;
+  metricUnit?: string;
+  unit?: string;
+  displayUnit?: string;
 }
 
-export interface CalibrationImperialStartOptions {
-  requestId?: string;
-  fileIndex?: number;
-  measurementSystem: 2;
-  metricUnit: "Feet";
-}
-
-export type CalibrationStartOptions =
-  | CalibrationMetricStartOptions
-  | CalibrationImperialStartOptions;
+/** @deprecated Use CalibrationStartOptions. */
+export type CalibrationMetricStartOptions = CalibrationStartOptions;
+/** @deprecated Use CalibrationStartOptions. */
+export type CalibrationImperialStartOptions = CalibrationStartOptions;
 
 export interface CalibrationCancelOptions {
   requestId?: string;
-  fileIndex?: number;
 }
 
 export interface CalibrationFinishedEvent {
@@ -123,40 +112,56 @@ export interface CalibrationFinishedEvent {
   [key: string]: unknown;
 }
 
-export interface CalibrationMetricSetOptions {
+export interface CalibrationSetOptions {
   requestId?: string;
   fileIndex?: number;
-  measurementSystem: 1;
-  metricUnit: MeasurementScaleMetricUnit;
-  calibrateCorrectionMetricValue: number | string;
-  dimPrecision: number;
-  timeoutMs?: number;
-}
-
-export interface CalibrationImperialSetOptions {
-  requestId?: string;
-  fileIndex?: number;
-  measurementSystem: 2;
-  metricUnit: "Feet";
+  measurementSystem?: CalibrationMeasurementSystem;
+  metricType?: CalibrationMeasurementSystem;
+  system?: CalibrationMeasurementSystem;
+  metric?: CalibrationMeasurementSystem;
+  metricUnit?: string;
+  unit?: string;
+  displayUnit?: string;
+  calibrateCorrectionMetricValue?: number | string;
+  calibrateLength?: number | string;
+  calibrateCorrectionFeetValue?: number | string;
   feet?: number | string;
+  calibrateCorrectionInchValue?: number | string;
   inches?: number | string;
-  dimPrecision: number;
+  dimPrecision?: number;
+  precisionValue?: number;
+  precision?: number;
+  pageRanges?: MeasurementScalePageRange[];
+  totalPages?: number;
   timeoutMs?: number;
 }
 
-export type CalibrationSetOptions =
-  | CalibrationMetricSetOptions
-  | CalibrationImperialSetOptions;
+/** @deprecated Use CalibrationSetOptions. */
+export type CalibrationMetricSetOptions = CalibrationSetOptions;
+/** @deprecated Use CalibrationSetOptions. */
+export type CalibrationImperialSetOptions = CalibrationSetOptions;
 
 type CalibrationSetPayload = {
   requestId: string;
   fileIndex?: number;
-  measurementSystem: CalibrationMeasurementSystem;
-  metricUnit: MeasurementScaleUnit;
-  calibrateCorrectionMetricValue?: number;
-  feet?: number;
-  inches?: number;
-  dimPrecision: number;
+  measurementSystem?: CalibrationMeasurementSystem;
+  metricType?: CalibrationMeasurementSystem;
+  system?: CalibrationMeasurementSystem;
+  metric?: CalibrationMeasurementSystem;
+  metricUnit?: string;
+  unit?: string;
+  displayUnit?: string;
+  calibrateCorrectionMetricValue?: number | string;
+  calibrateLength?: number | string;
+  calibrateCorrectionFeetValue?: number | string;
+  feet?: number | string;
+  calibrateCorrectionInchValue?: number | string;
+  inches?: number | string;
+  dimPrecision?: number;
+  precisionValue?: number;
+  precision?: number;
+  pageRanges?: MeasurementScalePageRange[];
+  totalPages?: number;
 };
 
 export interface CalibrationScaleCalculatedEvent {
@@ -169,8 +174,7 @@ export interface CalibrationScaleCalculatedEvent {
 
 export interface CalibrationApplyOptions {
   requestId?: string;
-  fileIndex?: number;
-  scale?: MeasurementScale;
+  scale?: Partial<MeasurementScale>;
   timeoutMs?: number;
 }
 
@@ -380,20 +384,25 @@ export class MeasurementCalibrationApi {
     this.broker = null;
   }
 
-  start(options: CalibrationStartOptions): string {
-    const requestId = options.requestId ?? createRequestId();
+  start(options: CalibrationStartOptions = {}): string {
+    const requestId = normalizeRequestId(options.requestId);
     this.requireAvailableRequest(requestId, "calibrationStart");
 
     requireReadyBroker({
       ...this.options,
       type: "calibrationStart",
       apiName: "viewer.measurements.calibration"
-    }).send("calibrationStart", {
+    }).send("calibrationStart", omitUndefined({
       requestId,
       fileIndex: options.fileIndex,
       measurementSystem: options.measurementSystem,
-      metricUnit: options.metricUnit
-    });
+      metricType: options.metricType,
+      system: options.system,
+      metric: options.metric,
+      metricUnit: options.metricUnit,
+      unit: options.unit,
+      displayUnit: options.displayUnit
+    }));
 
     this.activeRequestId = requestId;
 
@@ -406,7 +415,7 @@ export class MeasurementCalibrationApi {
       type: "calibrationSet",
       apiName: "viewer.measurements.calibration"
     });
-    const requestId = options.requestId ?? createRequestId();
+    const requestId = normalizeRequestId(options.requestId);
     const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
     this.requireAvailableRequest(requestId, "calibrationSet");
     const payload = this.createCalibrationSetPayload(options, requestId);
@@ -446,33 +455,15 @@ export class MeasurementCalibrationApi {
       type: "calibrationAddScale",
       apiName: "viewer.measurements.calibration"
     });
-    const requestId = options.requestId ?? createRequestId();
+    const requestId = normalizeRequestId(options.requestId);
     const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
     this.requireAvailableRequest(requestId, "calibrationAddScale");
-
-    if (options.scale && !isMeasurementScale(options.scale)) {
-      throw createCanvasCommandError(
-        "calibrationAddScale",
-        "Calibration apply scale requires label, value, metric, metricUnit, dimPrecision, and isSelected.",
-        {
-          scale: options.scale
-        }
-      );
-    }
 
     this.activeRequestId = requestId;
 
     return new Promise<MeasurementScalesSnapshot>((resolve, reject) => {
       const cleanup = broker.on<MeasurementScalesSnapshot>("scalesSnapshot", (message) => {
         if (!isMeasurementScalesSnapshot(message.payload)) {
-          return;
-        }
-
-        if (
-          typeof options.fileIndex === "number" &&
-          typeof message.payload.fileIndex === "number" &&
-          message.payload.fileIndex !== options.fileIndex
-        ) {
           return;
         }
 
@@ -488,25 +479,25 @@ export class MeasurementCalibrationApi {
         reject(createCommandTimeoutError(requestId, "calibrationAddScale", timeoutMs));
       }, timeoutMs);
 
-      broker.send("calibrationAddScale", {
+      broker.send("calibrationAddScale", omitUndefined({
         requestId,
-        fileIndex: options.fileIndex,
         scale: options.scale
-      });
+      }));
     });
   }
 
   cancel(options: CalibrationCancelOptions = {}): void {
+    const requestId = options.requestId?.trim() || undefined;
+
     requireReadyBroker({
       ...this.options,
       type: "calibrationCancel",
       apiName: "viewer.measurements.calibration"
-    }).send("calibrationCancel", {
-      requestId: options.requestId,
-      fileIndex: options.fileIndex
-    });
+    }).send("calibrationCancel", omitUndefined({
+      requestId
+    }));
 
-    if (!options.requestId || options.requestId === this.activeRequestId) {
+    if (!requestId || requestId === this.activeRequestId) {
       this.activeRequestId = null;
     }
   }
@@ -515,91 +506,28 @@ export class MeasurementCalibrationApi {
     options: CalibrationSetOptions,
     requestId: string
   ): CalibrationSetPayload {
-    this.validateCommonCalibrationSet(options);
-
-    if (options.measurementSystem === 1) {
-      if (!isMetricUnit(options.metricUnit)) {
-        throw createCanvasCommandError(
-          "calibrationSet",
-          "Metric calibration requires a supported metricUnit.",
-          {
-            options
-          }
-        );
-      }
-
-      const metricValue = parseFiniteNumber(options.calibrateCorrectionMetricValue);
-
-      if (metricValue === null || metricValue <= 0) {
-        throw createCanvasCommandError(
-          "calibrationSet",
-          "Metric calibration requires a positive finite calibrateCorrectionMetricValue.",
-          {
-            options
-          }
-        );
-      }
-
-      return {
-        requestId,
-        fileIndex: options.fileIndex,
-        measurementSystem: 1,
-        metricUnit: options.metricUnit,
-        calibrateCorrectionMetricValue: metricValue,
-        dimPrecision: options.dimPrecision,
-      };
-    }
-
-    const feet = parseFiniteNumber(options.feet);
-    const inches = parseFiniteNumber(options.inches);
-
-    if (
-      (options.feet !== undefined && feet === null) ||
-      (options.inches !== undefined && inches === null) ||
-      (feet !== null && feet < 0) ||
-      (inches !== null && inches < 0)
-    ) {
-      throw createCanvasCommandError(
-        "calibrationSet",
-        "Imperial calibration feet and inches must be finite non-negative numbers.",
-        {
-          options
-        }
-      );
-    }
-
-    if ((feet ?? 0) <= 0 && (inches ?? 0) <= 0) {
-      throw createCanvasCommandError(
-        "calibrationSet",
-        "Imperial calibration requires feet or inches greater than zero.",
-        {
-          options
-        }
-      );
-    }
-
-    return {
+    return omitUndefined({
       requestId,
       fileIndex: options.fileIndex,
-      measurementSystem: 2,
+      measurementSystem: options.measurementSystem,
+      metricType: options.metricType,
+      system: options.system,
+      metric: options.metric,
       metricUnit: options.metricUnit,
-      feet: feet ?? undefined,
-      inches: inches ?? undefined,
+      unit: options.unit,
+      displayUnit: options.displayUnit,
+      calibrateCorrectionMetricValue: options.calibrateCorrectionMetricValue,
+      calibrateLength: options.calibrateLength,
+      calibrateCorrectionFeetValue: options.calibrateCorrectionFeetValue,
+      feet: options.feet,
+      calibrateCorrectionInchValue: options.calibrateCorrectionInchValue,
+      inches: options.inches,
       dimPrecision: options.dimPrecision,
-    };
-  }
-
-  private validateCommonCalibrationSet(options: CalibrationSetOptions): void {
-    if (!Number.isInteger(options.dimPrecision) || options.dimPrecision < 0) {
-      throw createCanvasCommandError(
-        "calibrationSet",
-        "Calibration dimPrecision must be a non-negative integer.",
-        {
-          options
-        }
-      );
-    }
-
+      precisionValue: options.precisionValue,
+      precision: options.precision,
+      pageRanges: options.pageRanges,
+      totalPages: options.totalPages
+    });
   }
 
   private requireAvailableRequest(requestId: string, type: string): void {
@@ -643,42 +571,20 @@ function isMeasurementScale(scale: MeasurementScale | undefined): scale is Measu
 function isMeasurementScaleUnitSystem(
   metric: unknown
 ): metric is MeasurementScaleUnitSystem {
-  return (
-    metric === "0" ||
-    metric === "1" ||
-    metric === "METRIC" ||
-    metric === "IMPERIAL" ||
-    metric === 0 ||
-    metric === 1 ||
-    metric === 2
-  );
+  return typeof metric === "string" || typeof metric === "number";
 }
 
-function isMetricUnit(unit: unknown): unit is MeasurementScaleMetricUnit {
-  return (
-    unit === "Millimeter" ||
-    unit === "Centimeter" ||
-    unit === "Decimeter" ||
-    unit === "Meter" ||
-    unit === "Kilometer"
-  );
+function omitUndefined<TPayload extends Record<string, unknown>>(
+  payload: TPayload
+): TPayload {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  ) as TPayload;
 }
 
-function parseFiniteNumber(value: number | string | undefined): number | null {
-  if (value === undefined) {
-    return null;
-  }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value !== "string" || value.trim() === "") {
-    return null;
-  }
-
-  const parsedValue = Number(value);
-  return Number.isFinite(parsedValue) ? parsedValue : null;
+function normalizeRequestId(requestId: string | undefined): string {
+  const normalizedRequestId = requestId?.trim();
+  return normalizedRequestId || createRequestId();
 }
 
 function isCalibrationFinishedEvent(

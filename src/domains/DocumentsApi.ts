@@ -200,6 +200,7 @@ export class DocumentsApi {
   private readonly commandTimeoutMs: number;
   private readonly events = new DomainEventEmitter<DocumentEventMap>();
   private activeOpenRequestId: string | null = null;
+  private pendingOpenCancellation: ((error: RasterexViewerError) => void) | null = null;
   private exportInProgress = false;
   private broker: CanvasMessageBroker | null = null;
   private brokerCleanups: CanvasMessageUnsubscribe[] = [];
@@ -253,6 +254,12 @@ export class DocumentsApi {
   }
 
   disconnect(): void {
+    this.pendingOpenCancellation?.(
+      createViewerNotReadyError(
+        "RasterexViewer was disconnected before document open completed."
+      )
+    );
+
     for (const cleanup of this.brokerCleanups) {
       cleanup();
     }
@@ -585,6 +592,8 @@ export class DocumentsApi {
       let progressStarted = false;
       let progressEnded = false;
       let openedEmitted = false;
+      let settled = false;
+      let cancelOpen: ((error: RasterexViewerError) => void) | null = null;
 
       const cleanupCallbacks: Array<() => void> = [];
 
@@ -595,6 +604,21 @@ export class DocumentsApi {
         for (const cleanupCallback of cleanupCallbacks) {
           cleanupCallback();
         }
+
+        if (this.pendingOpenCancellation === cancelOpen) {
+          this.pendingOpenCancellation = null;
+        }
+      };
+
+      const rejectOpen = (error: RasterexViewerError) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        this.emitFailed(options, error);
+        reject(error);
       };
 
       const isCurrentPayload = (payload: { requestId?: string } | undefined) =>
@@ -602,6 +626,7 @@ export class DocumentsApi {
 
       const tryResolve = () => {
         if (this.isOpenComplete(result, progressStarted, progressEnded)) {
+          settled = true;
           cleanup();
           if (!openedEmitted) {
             openedEmitted = true;
@@ -612,16 +637,18 @@ export class DocumentsApi {
       };
 
       const timeoutId = globalThis.setTimeout(() => {
-        const error = createDocumentLoadFailedError(
-          "Document open did not produce file metadata before timeout.",
-          {
-            timeoutMs: this.commandTimeoutMs
-          }
+        rejectOpen(
+          createDocumentLoadFailedError(
+            "Document open did not produce file metadata before timeout.",
+            {
+              timeoutMs: this.commandTimeoutMs
+            }
+          )
         );
-        cleanup();
-        this.emitFailed(options, error);
-        reject(error);
       }, this.commandTimeoutMs);
+
+      cancelOpen = rejectOpen;
+      this.pendingOpenCancellation = cancelOpen;
 
       cleanupCallbacks.push(
         broker.on<CanvasFileInfoPayload>("fileInfo", (message) => {
@@ -684,7 +711,16 @@ export class DocumentsApi {
         displayName: options.displayName ?? options.name
       });
 
-      send();
+      try {
+        send();
+      } catch (error) {
+        rejectOpen(
+          createDocumentLoadFailedError("Document open command could not be sent.", {
+            requestId,
+            cause: error instanceof Error ? error.message : String(error)
+          })
+        );
+      }
     });
   }
 

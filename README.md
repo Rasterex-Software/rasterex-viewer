@@ -1,10 +1,18 @@
 # Rasterex Viewer SDK
 
-Embed Rasterex Viewer in your web application with a small iframe-based SDK.
+Embed Rasterex Canvas in your web application with the Rasterex Viewer SDK: a
+small, framework-independent TypeScript SDK that uses an iframe and
+PostMessage.
+
+Customer production deployments are self-hosted. Rasterex provides hosted
+Canvas for evaluation and proof-of-concept testing.
 
 The SDK mounts the viewer, opens files, controls tools, listens for viewer events, and provides TypeScript types for the public API.
 
-Full documentation: https://documentation.rasterex.com/
+Full [documentation](https://documentation.rasterex.com/) ·
+[source](https://github.com/Rasterex-Software/rasterex-viewer) ·
+[runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
+[issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
 
 ## Install
 
@@ -15,6 +23,9 @@ npm install @rasterex/viewer
 ## Requirements
 
 Use the package from a bundled application such as Vite, Next.js, Angular, React, Vue, Webpack, or Rollup.
+
+Use Node.js `^20.19.0 || >=22.12.0` when developing, building, or releasing
+this package.
 
 Browsers cannot resolve npm package names directly from a plain `<script type="module">` file without a bundler or import map.
 
@@ -65,13 +76,17 @@ await viewer.mount();
 await viewer.ready();
 ```
 
-By default, the SDK loads:
+By default, the SDK loads Rasterex's hosted Canvas environment for evaluation
+and proof-of-concept testing:
 
 ```txt
 https://beta.viewer.viewsoft.com
 ```
 
 `targetOrigin` is derived from the viewer URL when it is not provided.
+
+For customer production deployments, set `viewerUrl` to your self-hosted
+Rasterex Canvas URL.
 
 ## Open A File URL
 
@@ -85,6 +100,9 @@ await viewer.documents.open({
 ```
 
 The file URL must be reachable by the viewer environment.
+
+This example uses a public PDF for demonstration only. In production, provide
+a file URL that is reachable by your self-hosted Rasterex Canvas deployment.
 
 `displayName` should include the file extension, for example `sample.pdf`.
 
@@ -106,7 +124,9 @@ const viewer = await createDocumentViewer({
 
 ## Custom Viewer URL
 
-Use `viewerUrl` for your hosted or on-premises viewer.
+For customer production deployments, use `viewerUrl` for your self-hosted
+Rasterex Canvas URL. The default hosted Canvas environment is intended for
+evaluation and proof-of-concept testing.
 
 ```ts
 import { createViewer } from "@rasterex/viewer";
@@ -259,7 +279,10 @@ Before publishing, maintainers should verify the package with:
 ```sh
 npm audit --omit=dev
 npm audit
-npm pack --dry-run
+npm pack --json
 ```
+
+Install the generated tarball in a clean project and verify the public package
+imports before publishing.
 
 See `SECURITY.md` for the vulnerability reporting policy and package security scope.
