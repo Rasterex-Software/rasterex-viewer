@@ -1,7 +1,22 @@
 {
   "name": "@rasterex/viewer",
-  "version": "1.0.0",
-  "description": "Framework-independent Rasterex hosted viewer iframe SDK.",
+  "version": "1.0.1",
+  "description": "TypeScript SDK for embedding Rasterex Canvas in web applications via iframe and PostMessage. Built for customer self-hosted deployments; hosted Canvas is available for evaluation and proof-of-concept testing.",
+  "author": {
+    "name": "Rasterex Software AS",
+    "url": "https://rasterex.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rasterex-Software/rasterex-viewer.git"
+  },
+  "homepage": "https://documentation.rasterex.com/",
+  "bugs": {
+    "url": "https://github.com/Rasterex-Software/rasterex-viewer/issues"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "type": "module",
   "sideEffects": false,
   "private": false,
@@ -34,9 +49,46 @@
   },
   "keywords": [
     "rasterex",
-    "canvas",
-    "viewer",
-    "iframe"
+    "rasterex-viewer",
+    "rasterex-canvas",
+    "rasterex-sdk",
+    "document-viewer",
+    "technical-document-viewer",
+    "iframe-sdk",
+    "iframe-viewer",
+    "iframe-embed",
+    "embedded-viewer",
+    "self-hosted",
+    "on-premises",
+    "postmessage",
+    "cad-viewer",
+    "construction-document-viewer",
+    "construction-takeoff",
+    "cost-estimation",
+    "dwg-viewer",
+    "dxf-viewer",
+    "engineering-document-viewer",
+    "estimation",
+    "pdf-viewer",
+    "measurement",
+    "measurement-viewer",
+    "annotation",
+    "annotations",
+    "alignment-viewer",
+    "markup",
+    "collaboration",
+    "bim-viewer",
+    "ifc-viewer",
+    "plan-review",
+    "compare-viewer",
+    "comparison-viewer",
+    "document-comparison",
+    "drawing-comparison",
+    "overlay-comparison",
+    "revision-comparison",
+    "revision-viewer",
+    "takeoff-viewer",
+    "technical-drawing-viewer"
   ],
   "license": "MIT",
   "devDependencies": {

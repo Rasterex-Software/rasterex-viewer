@@ -3,8 +3,11 @@ import type { DocumentOpenOptions } from "./domains/DocumentsApi.js";
 import type { RasterexViewer } from "./RasterexViewer.js";
 import type { RasterexViewerOptions } from "./types.js";
 
+export type DocumentViewerDocumentOptions = DocumentOpenOptions &
+  ({ url: string } | { path: string });
+
 export interface CreateDocumentViewerOptions extends RasterexViewerOptions {
-  document: DocumentOpenOptions;
+  document: DocumentViewerDocumentOptions;
 }
 
 export async function createDocumentViewer(
@@ -24,4 +27,3 @@ export async function createDocumentViewer(
     throw error;
   }
 }
-

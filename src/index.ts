@@ -71,7 +71,8 @@ export type {
   CanvasMessageUnsubscribe as CanvasApiMessageUnsubscribe
 } from "./domains/CanvasApi.js";
 export type {
-  CreateDocumentViewerOptions
+  CreateDocumentViewerOptions,
+  DocumentViewerDocumentOptions
 } from "./createDocumentViewer.js";
 export type {
   DocumentExportOptions,
@@ -199,8 +200,10 @@ export type {
   CalibrationCancelOptions,
   CalibrationFinishedEvent,
   CalibrationImperialSetOptions,
+  CalibrationImperialStartOptions,
   CalibrationMeasurementSystem,
   CalibrationMetricSetOptions,
+  CalibrationMetricStartOptions,
   CalibrationScaleCalculatedEvent,
   CalibrationSetOptions,
   CalibrationStartOptions,
