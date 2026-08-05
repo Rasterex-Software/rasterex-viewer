@@ -1,6 +1,6 @@
 {
   "name": "@rasterex/viewer",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "TypeScript SDK for embedding Rasterex Canvas in web applications via iframe and PostMessage. Built for customer self-hosted deployments; hosted Canvas is available for evaluation and proof-of-concept testing.",
   "author": {
     "name": "Rasterex Software AS",
@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/Rasterex-Software/rasterex-viewer.git"
   },
-  "homepage": "https://documentation.rasterex.com/",
+  "homepage": "https://docs.rasterex.com/",
   "bugs": {
     "url": "https://github.com/Rasterex-Software/rasterex-viewer/issues"
   },
@@ -45,6 +45,7 @@
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && npm run build:sdk",
     "build:sdk": "tsc -p tsconfig.json",
+    "check:source-lines": "node scripts/check-source-line-limit.mjs",
     "dev": "vite examples/vanilla"
   },
   "keywords": [

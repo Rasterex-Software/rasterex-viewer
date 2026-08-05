@@ -5,19 +5,19 @@ export { Diagnostics } from "./diagnostics.js";
 export { IframeTransport } from "./messaging/IframeTransport.js";
 export { CanvasMessageBroker } from "./messaging/CanvasMessageBroker.js";
 export { MessageClient } from "./messaging/MessageClient.js";
-export { CanvasApi } from "./domains/CanvasApi.js";
-export { DocumentsApi } from "./domains/DocumentsApi.js";
-export { AnnotationsApi } from "./domains/AnnotationsApi.js";
+export { CanvasApi } from "./domains/canvas/CanvasApi.js";
+export { DocumentsApi } from "./domains/documents/DocumentsApi.js";
+export { AnnotationsApi } from "./domains/annotations/AnnotationsApi.js";
 export {
   MeasurementCalibrationApi,
   MeasurementsApi,
   MeasurementScaleApi
-} from "./domains/MeasurementsApi.js";
-export { CompareApi } from "./domains/CompareApi.js";
-export { CollaborationApi } from "./domains/CollaborationApi.js";
-export { StylesApi } from "./domains/StylesApi.js";
-export { LayersApi } from "./domains/LayersApi.js";
-export { BlocksApi } from "./domains/BlocksApi.js";
+} from "./domains/measurements/MeasurementsApi.js";
+export { CompareApi } from "./domains/compare/CompareApi.js";
+export { CollaborationApi } from "./domains/collaboration/CollaborationApi.js";
+export { StylesApi } from "./domains/styles/StylesApi.js";
+export { LayersApi } from "./domains/layers/LayersApi.js";
+export { BlocksApi } from "./domains/blocks/BlocksApi.js";
 export {
   ToolsApi,
   ToolsNavigationApi,
@@ -25,7 +25,7 @@ export {
   ToolsSymbolsApi,
   ToolsThreeDApi,
   ToolsToolbarApi
-} from "./domains/ToolsApi.js";
+} from "./domains/tools/ToolsApi.js";
 export { RasterexViewerError } from "./errors.js";
 export {
   DEFAULT_COMMAND_TIMEOUT_MS,
@@ -69,7 +69,7 @@ export type {
   CanvasMessage as CanvasApiMessage,
   CanvasMessageHandler as CanvasApiMessageHandler,
   CanvasMessageUnsubscribe as CanvasApiMessageUnsubscribe
-} from "./domains/CanvasApi.js";
+} from "./domains/canvas/CanvasApi.js";
 export type {
   CreateDocumentViewerOptions,
   DocumentViewerDocumentOptions
@@ -85,6 +85,10 @@ export type {
   DocumentEventMap,
   DocumentEventName,
   DocumentEventUnsubscribe,
+  DocumentFileLoadFailedEvent,
+  DocumentFileLoadFailedReason,
+  DocumentFileReadyEvent,
+  DocumentFileSource,
   DocumentFailedEvent,
   DocumentOpenedEvent,
   DocumentOpeningEvent,
@@ -102,7 +106,7 @@ export type {
   CanvasPageListPayload,
   SelectPageOptions,
   SetActiveFileByIndexOptions
-} from "./domains/DocumentsApi.js";
+} from "./domains/documents/DocumentsApi.js";
 export type {
   AnnotationDataFilter,
   AnnotationDataItem,
@@ -127,7 +131,7 @@ export type {
   SaveAnnotationsOptions,
   SaveAnnotationsResult,
   SelectAnnotationOptions
-} from "./domains/AnnotationsApi.js";
+} from "./domains/annotations/AnnotationsApi.js";
 export type {
   CompareAlignPayload,
   CompareApiOptions,
@@ -139,7 +143,7 @@ export type {
   CompareSaveOptions,
   ComparisonErrorPayload,
   ComparisonResult
-} from "./domains/CompareApi.js";
+} from "./domains/compare/CompareApi.js";
 export type {
   CollaborationApiOptions,
   CollaborationConfigPayload,
@@ -152,7 +156,7 @@ export type {
   CollaborationUserPayload,
   SetUserOptions,
   SetUserResultPayload
-} from "./domains/CollaborationApi.js";
+} from "./domains/collaboration/CollaborationApi.js";
 export type {
   AnnotationProperties,
   AnnotationPropertiesResult,
@@ -160,7 +164,7 @@ export type {
   GetAnnotationPropertiesOptions,
   SetAnnotationPropertiesOptions,
   StylesApiOptions
-} from "./domains/StylesApi.js";
+} from "./domains/styles/StylesApi.js";
 export type {
   GetLayersOptions,
   LayerDetails,
@@ -173,7 +177,7 @@ export type {
   LayersEventUnsubscribe,
   LayersSnapshot,
   SetLayerVisibilityOptions
-} from "./domains/LayersApi.js";
+} from "./domains/layers/LayersApi.js";
 export type {
   BlockAttribute,
   BlockAttributesSnapshot,
@@ -193,7 +197,7 @@ export type {
   GetBlockDetailsOptions,
   GetBlocksOptions,
   SetBlockVisibilityOptions
-} from "./domains/BlocksApi.js";
+} from "./domains/blocks/BlocksApi.js";
 export type {
   AddMeasurementScaleOptions,
   CalibrationApplyOptions,
@@ -225,7 +229,7 @@ export type {
   MeasurementScaleUnit,
   MeasurementScaleUnitSystem,
   RequestMeasurementScalesOptions
-} from "./domains/MeasurementsApi.js";
+} from "./domains/measurements/MeasurementsApi.js";
 export type {
   CustomToolbarButtonOptions,
   CanvasToolControlOptions,
@@ -255,7 +259,7 @@ export type {
   ToolsToolbarEventName,
   ToolSetOptions,
   ToolStyleOptions
-} from "./domains/ToolsApi.js";
+} from "./domains/tools/ToolsApi.js";
 export type {
   DomainEventHandler,
   DomainEventMap,
@@ -281,4 +285,4 @@ export type {
   RasterexViewerInfo,
   RasterexViewerOptions,
   ViewerState
-} from "./types.js";
+} from "./types/index.js";

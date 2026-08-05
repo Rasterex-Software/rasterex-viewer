@@ -20,16 +20,16 @@ import {
   type ViewerReadyMessage
 } from "./protocol/index.js";
 import { ViewerMessagingSession } from "./messaging/ViewerMessagingSession.js";
-import { CanvasApi } from "./domains/CanvasApi.js";
-import { DocumentsApi } from "./domains/DocumentsApi.js";
-import { AnnotationsApi } from "./domains/AnnotationsApi.js";
-import { ToolsApi } from "./domains/ToolsApi.js";
-import { MeasurementsApi } from "./domains/MeasurementsApi.js";
-import { CompareApi } from "./domains/CompareApi.js";
-import { CollaborationApi } from "./domains/CollaborationApi.js";
-import { StylesApi } from "./domains/StylesApi.js";
-import { LayersApi } from "./domains/LayersApi.js";
-import { BlocksApi } from "./domains/BlocksApi.js";
+import { CanvasApi } from "./domains/canvas/CanvasApi.js";
+import { DocumentsApi } from "./domains/documents/DocumentsApi.js";
+import { AnnotationsApi } from "./domains/annotations/AnnotationsApi.js";
+import { ToolsApi } from "./domains/tools/ToolsApi.js";
+import { MeasurementsApi } from "./domains/measurements/MeasurementsApi.js";
+import { CompareApi } from "./domains/compare/CompareApi.js";
+import { CollaborationApi } from "./domains/collaboration/CollaborationApi.js";
+import { StylesApi } from "./domains/styles/StylesApi.js";
+import { LayersApi } from "./domains/layers/LayersApi.js";
+import { BlocksApi } from "./domains/blocks/BlocksApi.js";
 import { evaluateCompatibility } from "./utils/compatibility.js";
 import { createSdkInstanceId } from "./utils/createSdkInstanceId.js";
 import { deriveOrigin } from "./utils/deriveOrigin.js";
@@ -37,7 +37,7 @@ import type {
   RasterexViewerInfo,
   RasterexViewerOptions,
   ViewerState
-} from "./types.js";
+} from "./types/index.js";
 
 export class RasterexViewer {
   private readonly container: HTMLElement | string;
