@@ -131,6 +131,73 @@ by your self-hosted Rasterex Canvas deployment.
 not the display name. It lets the server reuse already processed content for the
 same file, which can make repeat opens faster.
 
+### Document Loading Lifecycle
+
+Subscribe to document events before opening a file when your UI needs a loading
+indicator or error message. `opening` starts the loading state. `fileReady`
+confirms that Canvas has opened and activated the file; `fileLoadFailed` reports
+a Canvas-side open failure. The SDK also emits `failed` for setup, readiness,
+or timeout errors.
+
+Canvas does not provide a documented numeric document-progress callback through
+`viewer.documents`. Show an indeterminate loading indicator from `opening` until
+one of the terminal events arrives.
+
+```ts
+import { createViewer } from "@rasterex/viewer";
+
+const viewer = createViewer({ container: "#rx-viewer" });
+
+viewer.documents.on("opening", () => {
+  showLoadingIndicator();
+  clearOpenError();
+});
+
+viewer.documents.on("fileReady", (event) => {
+  hideLoadingIndicator();
+  console.log("File ready:", event.fileName);
+});
+
+viewer.documents.on("fileLoadFailed", (event) => {
+  console.error("Canvas could not open the file:", event.reason);
+});
+
+viewer.documents.on("failed", (event) => {
+  hideLoadingIndicator();
+  showOpenError(event.error.message);
+});
+
+await viewer.mount();
+await viewer.ready();
+
+try {
+  await viewer.documents.open({
+    url: "https://files.example.com/sample.pdf",
+    displayName: "sample.pdf"
+  });
+} catch {
+  // The `failed` event above has already updated the UI.
+}
+```
+
+For a browser-local file selected by the user, call `openFile(...)` after the
+same initialization and event setup:
+
+```ts
+const fileInput = document.querySelector<HTMLInputElement>("#file-input");
+const file = fileInput?.files?.[0];
+
+if (file) {
+  try {
+    await viewer.documents.openFile(file, {
+      cacheId: "file_7f3a9c2_sample_pdf"
+    });
+  } catch {
+    // The `failed` event above has already updated the UI.
+  }
+}
+```
+
 ### Create, Mount, And Open In One Call
 
 Use `createDocumentViewer` when the first action should be opening a document:
@@ -247,7 +314,7 @@ Hosted presets are exported from a separate entrypoint:
 
 ```ts
 import { createViewer } from "@rasterex/viewer";
-import { sandboxCanvas, takeoffDemo } from "@rasterex/viewer/demo-presets";
+import { sandboxCanvas } from "@rasterex/viewer/demo-presets";
 
 const viewer = createViewer({
   container: "#rx-viewer",
@@ -255,9 +322,6 @@ const viewer = createViewer({
   targetOrigin: sandboxCanvas.targetOrigin
 });
 ```
-
-Takeoff is not loaded by default. Use `takeoffDemo` only when your application
-explicitly selects that preset.
 
 ## Cleanup
 
