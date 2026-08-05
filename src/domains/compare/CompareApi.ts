@@ -1,87 +1,25 @@
-import {
-  DomainEventEmitter,
-  type DomainEventHandler,
-  type DomainEventUnsubscribe
-} from "../utils/DomainEventEmitter.js";
+import { DomainEventEmitter } from "../../utils/DomainEventEmitter.js";
 import type {
   CanvasMessageBroker,
   CanvasMessageUnsubscribe
-} from "../messaging/CanvasMessageBroker.js";
+} from "../../messaging/CanvasMessageBroker.js";
 import {
   createCanvasCommandError,
   requireReadyBroker
-} from "./canvasBrokerCommands.js";
-
-export interface CompareAlignPayload {
-  backgroundUrl?: string;
-  overlayUrl?: string;
-  backgroundFileName?: string;
-  overlayFileName?: string;
-  outputName?: string;
-  dpi?: number;
-  backgroundColor?: string;
-  overlayColor?: string;
-  equalColor?: string;
-  alignArray?: Array<Record<string, unknown>>;
-}
-
-export interface ComparisonResult {
-  relativePath: string;
-  activeFile: unknown;
-  otherFile: unknown;
-  activeFileUrl?: string;
-  otherFileUrl?: string;
-  activeColor?: unknown;
-  otherColor?: unknown;
-  activeSetAs?: unknown;
-  otherSetAs?: unknown;
-  alignarray?: Array<Record<string, unknown>>;
-  dpi?: number;
-  name?: string;
-  index?: number;
-  mode?: "compare" | "align";
-  backgroundUrl?: string;
-  overlayUrl?: string;
-}
-
-export interface ComparisonErrorPayload {
-  mode?: "compare" | "align";
-  message: string;
-}
-
-export interface CompareProgressStartEvent {
-  message: string;
-}
-
-export interface CompareSaveOptions {
-  outputName?: string;
-}
-
-export interface CompareEventMap {
-  progressStart: CompareProgressStartEvent;
-  progressEnd: undefined;
-  comparisonComplete: ComparisonResult | undefined;
-  comparisonError: ComparisonErrorPayload;
-  compareSaveComplete: string | undefined;
-  comparisonMarkupChanged: boolean;
-}
-
-export type CompareEventName = keyof CompareEventMap;
-export type CompareEventHandler<TEventName extends CompareEventName> =
-  DomainEventHandler<CompareEventMap[TEventName]>;
-export type CompareEventUnsubscribe = DomainEventUnsubscribe;
-type ComparePendingCommand = "compare" | "align" | "compareSave";
-
-interface PendingCompareCommand {
-  type: ComparePendingCommand;
-  waitsForInteractiveAlignResult: boolean;
-  completed: boolean;
-}
-
-export interface CompareApiOptions {
-  getBroker: () => CanvasMessageBroker | null;
-  getIsReady: () => boolean;
-}
+} from "../canvas/canvasBrokerCommands.js";
+import type {
+  CompareAlignPayload,
+  CompareApiOptions,
+  CompareEventHandler,
+  CompareEventMap,
+  CompareEventName,
+  CompareEventUnsubscribe,
+  ComparisonErrorPayload,
+  ComparisonResult,
+  CompareSaveOptions
+} from "./types.js";
+import type { ComparePendingCommand, PendingCompareCommand } from "./internalTypes.js";
+export type * from "./types.js";
 
 export class CompareApi {
   private readonly options: CompareApiOptions;
@@ -191,6 +129,11 @@ export class CompareApi {
     this.send("align", payload, isInteractiveAlignPayload(payload));
   }
 
+  /**
+   * @deprecated Canvas comparison-markup save is not supported for new
+   * integrations. This compatibility method may be removed in a future major
+   * SDK release.
+   */
   save(options: CompareSaveOptions | string = {}): void {
     const payload =
       typeof options === "string"

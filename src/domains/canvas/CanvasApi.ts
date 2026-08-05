@@ -1,14 +1,12 @@
-import { createViewerNotReadyError } from "../errors.js";
+import { createViewerNotReadyError } from "../../errors.js";
 import type {
   CanvasMessage,
   CanvasMessageBroker,
   CanvasMessageHandler,
   CanvasMessageUnsubscribe
-} from "../messaging/CanvasMessageBroker.js";
-
-export interface CanvasApiOptions {
-  getBroker: () => CanvasMessageBroker | null;
-}
+} from "../../messaging/CanvasMessageBroker.js";
+import type { CanvasApiOptions } from "./types.js";
+export type { CanvasApiOptions } from "./types.js";
 
 export class CanvasApi {
   private readonly getBroker: () => CanvasMessageBroker | null;

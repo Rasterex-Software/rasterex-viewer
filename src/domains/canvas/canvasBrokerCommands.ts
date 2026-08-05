@@ -1,14 +1,14 @@
-import { ERROR_CODES } from "../protocol/index.js";
+import { ERROR_CODES } from "../../protocol/index.js";
 
 import {
   createCommandTimeoutError,
   createViewerNotReadyError,
   RasterexViewerError
-} from "../errors.js";
+} from "../../errors.js";
 import type {
   CanvasMessage,
   CanvasMessageBroker
-} from "../messaging/CanvasMessageBroker.js";
+} from "../../messaging/CanvasMessageBroker.js";
 
 export interface CanvasBrokerAccess {
   getBroker: () => CanvasMessageBroker | null;

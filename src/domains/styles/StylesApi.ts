@@ -1,56 +1,16 @@
-import type { CanvasMessageBroker } from "../messaging/CanvasMessageBroker.js";
-import { createCommandTimeoutError } from "../errors.js";
+import { createCommandTimeoutError } from "../../errors.js";
 import {
   requireReadyBroker,
   sendCanvasFireAndForget
-} from "./canvasBrokerCommands.js";
-
-export interface GlobalAppearanceOptions {
-  strokeColor?: string;
-  fillColor?: string;
-  textColor?: string;
-  lineWidth?: number;
-  lineStyle?: number;
-  transparency?: number;
-}
-
-export interface AnnotationProperties {
-  strokeColor?: string;
-  fillColor?: string;
-  textColor?: string;
-  lineWidth?: number;
-  lineStyle?: number;
-  transparency?: number;
-  locked?: boolean;
-  text?: string;
-  countType?: number;
-  arrowType?: number;
-  measureType?: number;
-}
-
-export interface GetAnnotationPropertiesOptions {
-  guid: string;
-  timeoutMs?: number;
-}
-
-export interface SetAnnotationPropertiesOptions {
-  guid: string;
-  props: AnnotationProperties;
-}
-
-export interface AnnotationPropertiesResult {
-  guid: string;
-  success: boolean;
-  props?: AnnotationProperties;
-  error?: string;
-  [key: string]: unknown;
-}
-
-export interface StylesApiOptions {
-  getBroker: () => CanvasMessageBroker | null;
-  getIsReady: () => boolean;
-  commandTimeoutMs: number;
-}
+} from "../canvas/canvasBrokerCommands.js";
+import type {
+  AnnotationPropertiesResult,
+  GetAnnotationPropertiesOptions,
+  GlobalAppearanceOptions,
+  SetAnnotationPropertiesOptions,
+  StylesApiOptions
+} from "./types.js";
+export type * from "./types.js";
 
 export class StylesApi {
   private readonly options: StylesApiOptions;

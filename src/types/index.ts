@@ -1,7 +1,7 @@
 import type {
   Capability,
   CompatibilityResult
-} from "./protocol/index.js";
+} from "../protocol/index.js";
 
 export interface RasterexViewerOptions {
   container: HTMLElement | string;

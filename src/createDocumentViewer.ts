@@ -1,7 +1,7 @@
 import { createViewer } from "./createViewer.js";
-import type { DocumentOpenOptions } from "./domains/DocumentsApi.js";
+import type { DocumentOpenOptions } from "./domains/documents/DocumentsApi.js";
 import type { RasterexViewer } from "./RasterexViewer.js";
-import type { RasterexViewerOptions } from "./types.js";
+import type { RasterexViewerOptions } from "./types/index.js";
 
 export type DocumentViewerDocumentOptions = DocumentOpenOptions &
   ({ url: string } | { path: string });

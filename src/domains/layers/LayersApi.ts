@@ -1,80 +1,25 @@
-import { createCommandTimeoutError } from "../errors.js";
+import { createCommandTimeoutError } from "../../errors.js";
 import type {
   CanvasMessageBroker,
   CanvasMessageUnsubscribe
-} from "../messaging/CanvasMessageBroker.js";
-import { createRequestId } from "../utils/createRequestId.js";
-import {
-  DomainEventEmitter,
-  type DomainEventHandler,
-  type DomainEventUnsubscribe
-} from "../utils/DomainEventEmitter.js";
+} from "../../messaging/CanvasMessageBroker.js";
+import { createRequestId } from "../../utils/createRequestId.js";
+import { DomainEventEmitter } from "../../utils/DomainEventEmitter.js";
 import {
   createCanvasCommandError,
   requireReadyBroker
-} from "./canvasBrokerCommands.js";
-
-export type LayerKind = "vector" | "pdf";
-
-export interface LayerDetails {
-  state?: number;
-  defaultstate?: number;
-  isplottable?: number;
-  [key: string]: unknown;
-}
-
-export interface LayerItem {
-  index?: number;
-  id?: string | number;
-  name?: string;
-  color?: string;
-  visible: boolean;
-  kind: LayerKind;
-  details?: LayerDetails;
-  [key: string]: unknown;
-}
-
-export interface LayersSnapshot {
-  requestId?: string;
-  fileId?: string;
-  fileIndex?: number;
-  fileName?: string;
-  layers: LayerItem[];
-  [key: string]: unknown;
-}
-
-export interface GetLayersOptions {
-  requestId?: string;
-  timeoutMs?: number;
-}
-
-export interface SetLayerVisibilityOptions {
-  requestId?: string;
-  index?: number;
-  indexes?: number[];
-  id?: string | number;
-  ids?: Array<string | number>;
-  name?: string;
-  names?: string[];
-  all?: boolean;
-  visible: boolean;
-  timeoutMs?: number;
-}
-
-export interface LayersEventMap {
-  snapshot: LayersSnapshot;
-}
-
-export type LayersEventName = keyof LayersEventMap;
-export type LayersEventHandler<TEventName extends LayersEventName> =
-  DomainEventHandler<LayersEventMap[TEventName]>;
-export type LayersEventUnsubscribe = DomainEventUnsubscribe;
-
-export interface LayersApiOptions {
-  getBroker: () => CanvasMessageBroker | null;
-  getIsReady: () => boolean;
-  commandTimeoutMs: number;
-}
+} from "../canvas/canvasBrokerCommands.js";
+import type {
+  GetLayersOptions,
+  LayersApiOptions,
+  LayersEventHandler,
+  LayersEventMap,
+  LayersEventName,
+  LayersEventUnsubscribe,
+  LayersSnapshot,
+  SetLayerVisibilityOptions
+} from "./types.js";
+export type * from "./types.js";
 
 export class LayersApi {
   private readonly options: LayersApiOptions;

@@ -88,6 +88,23 @@ Do not put every future method directly on `RasterexViewer`. Add domain APIs onl
 
 Keep implementation changes small and scoped. Do not introduce broad refactors, new frameworks, runtime dependencies, telemetry, CDN references, or Canvas Angular code unless the active task explicitly requires it.
 
+## Source File Size Rule
+
+Production TypeScript files under `src/` must not exceed 500 lines. At 400 lines,
+treat the file as a refactoring signal; before it exceeds 500 lines, split it by
+cohesive responsibility. Use domain-local folders such as `src/domains/documents/`
+for a domain's types, broker payload mapping, and lifecycle helpers. Do not create
+a global types folder for domain-specific types.
+
+Four pre-existing files are held to their checked-in legacy baseline by
+`scripts/check-source-line-limit.mjs`; they must not grow and should be reduced
+below 500 lines when their domain is next materially changed. All new and
+refactored source files must meet the 500-line limit now.
+
+Run `npm run check:source-lines` before handing off source changes. The limit
+excludes generated output and only permits the named, non-increasing legacy
+baselines above.
+
 Production entrypoints must stay air-gap safe. Demo URLs and hosted references belong only in demo-specific files or entrypoints.
 
 ## Feature Documentation Intake Rule

@@ -9,7 +9,7 @@ Canvas for evaluation and proof-of-concept testing.
 
 The SDK mounts the viewer, opens files, controls tools, listens for viewer events, and provides TypeScript types for the public API.
 
-Full [documentation](https://documentation.rasterex.com/) ·
+Full [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
 [issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
@@ -80,7 +80,7 @@ By default, the SDK loads Rasterex's hosted Canvas environment for evaluation
 and proof-of-concept testing:
 
 ```txt
-https://beta.viewer.viewsoft.com
+https://sandbox.rasterex.com
 ```
 
 `targetOrigin` is derived from the viewer URL when it is not provided.
@@ -185,7 +185,7 @@ interface RasterexViewerOptions {
 | Option | Description |
 | --- | --- |
 | `container` | DOM element or selector where the iframe is mounted. |
-| `viewerUrl` | Viewer URL to load. Defaults to `https://beta.viewer.viewsoft.com`. |
+| `viewerUrl` | Viewer URL to load. Defaults to `https://sandbox.rasterex.com`. |
 | `targetOrigin` | Trusted origin for viewer messages. Defaults to the origin of `viewerUrl`. |
 | `connectTimeoutMs` | Timeout for iframe loading. |
 | `readyTimeoutMs` | Timeout while waiting for viewer readiness. |
