@@ -156,11 +156,7 @@ export class DocumentsApi {
     });
   }
 
-  /**
-   * @deprecated Browser `File` opens are not ready for application integration.
-   * Do not use this method in new integrations until the Canvas local-file issue
-   * is resolved. The method remains available for compatibility.
-   */
+  /** Opens a browser-local `File` through the Canvas `viewFile` command. */
   openFile(file: File, options: DocumentOpenFileOptions = {}): Promise<DocumentOpenResult> {
     const setupError = this.getOpenFileSetupError(file);
 
