@@ -1,6 +1,5 @@
 export {
   DEMO_VIEWER_PRESETS,
   betaViewerDemo,
-  sandboxCanvas,
-  takeoffDemo
+  sandboxCanvas
 } from "./demo-presets.js";
