@@ -8,8 +8,6 @@ features.
 Customer production deployments are self-hosted. Rasterex provides a hosted
 Canvas Sandbox for evaluation and proof-of-concept testing.
 
-The SDK mounts the viewer, opens files, controls tools, listens for viewer events, and provides TypeScript types for the public API.
-
 Full [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
@@ -111,9 +109,7 @@ await viewer.ready();
 Without `viewerUrl`, this uses the hosted Sandbox. `targetOrigin` is derived
 from the viewer URL when it is not provided.
 
-```txt
-https://sandbox.rasterex.com
-```
+## Open A Document
 
 After the viewer is ready, open a document URL:
 
