@@ -157,7 +157,10 @@ export class DocumentsApi {
   }
 
   /** Opens a browser-local `File` through the Canvas `viewFile` command. */
-  openFile(file: File, options: DocumentOpenFileOptions = {}): Promise<DocumentOpenResult> {
+  async openFile(
+    file: File,
+    options: DocumentOpenFileOptions = {}
+  ): Promise<DocumentOpenResult> {
     const setupError = this.getOpenFileSetupError(file);
 
     if (setupError) {
@@ -188,6 +191,24 @@ export class DocumentsApi {
     const requestId = options.requestId ?? createRequestId();
     this.activeOpenRequestId = requestId;
 
+    let buffer: ArrayBuffer;
+
+    try {
+      buffer = await file.arrayBuffer();
+    } catch (error) {
+      const loadError = createDocumentLoadFailedError(
+        "The local file could not be read.",
+        {
+          requestId,
+          cause: error instanceof Error ? error.message : String(error)
+        }
+      );
+
+      this.activeOpenRequestId = null;
+      this.emitFailed({ displayName: file.name }, loadError);
+      throw loadError;
+    }
+
     return this.waitForCanvasOpen({
       broker,
       options: {
@@ -196,9 +217,19 @@ export class DocumentsApi {
       },
       requestId,
       source: "file",
-      requiresRequestId: false,
+      requiresRequestId: true,
       send: () => {
-        broker.send("viewFile", this.createViewFilePayload(file, options));
+        broker.send(
+          "viewFile",
+          {
+            requestId,
+            fileName: file.name,
+            mime: file.type,
+            lastModified: file.lastModified,
+            buffer
+          },
+          [buffer]
+        );
       }
     });
   }
@@ -408,20 +439,6 @@ export class DocumentsApi {
       name: options.name,
       cacheId: options.cacheId,
       mime: options.mime
-    };
-  }
-
-  private createViewFilePayload(
-    file: File,
-    options: DocumentOpenFileOptions
-  ): File | { file: File; cacheId: string } {
-    if (!options.cacheId) {
-      return file;
-    }
-
-    return {
-      file,
-      cacheId: options.cacheId
     };
   }
 

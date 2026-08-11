@@ -189,9 +189,7 @@ const file = fileInput?.files?.[0];
 
 if (file) {
   try {
-    await viewer.documents.openFile(file, {
-      cacheId: "file_7f3a9c2_sample_pdf"
-    });
+    await viewer.documents.openFile(file);
   } catch {
     // The `failed` event above has already updated the UI.
   }
