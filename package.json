@@ -1,6 +1,6 @@
 {
   "name": "@rasterex/viewer",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "TypeScript SDK for embedding Rasterex Canvas in web applications via iframe and PostMessage. Built for customer self-hosted deployments; hosted Canvas is available for evaluation and proof-of-concept testing.",
   "author": {
     "name": "Rasterex Software AS",

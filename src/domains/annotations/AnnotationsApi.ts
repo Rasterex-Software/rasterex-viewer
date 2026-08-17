@@ -339,13 +339,15 @@ export class AnnotationsApi {
       return;
     }
 
-    this.events.emit(eventName, {
+    const event: AnnotationEvent = {
       guid: payload.guid,
       data: payload.data ?? {},
       dbUniqueID: payload.dbUniqueID ?? null,
       source: "current-canvas",
       detail
-    });
+    };
+
+    this.events.emit(eventName, event as AnnotationEventMap[typeof eventName]);
   }
 
   private requireReadyBroker(type: string): CanvasMessageBroker {

@@ -142,6 +142,26 @@ Purpose: a documentation agent should be able to read the version change markdow
 
 Do not rely only on `README.md` or git commits for release knowledge.
 
+### Mandatory Version-Bump Checklist
+
+When a user requests a package version update, all of these steps are required
+before handoff:
+
+1. Update `version` in `package.json`.
+2. Update the root package version and `packages[""].version` in
+   `package-lock.json` when the lockfile exists.
+3. Update `SDK_VERSION` in `src/constants.ts` so handshakes, diagnostics, and
+   compatibility checks report the package version.
+4. Create `docs/version-changes/<version>.md` from
+   `docs/version-changes/VERSION_CHANGE_TEMPLATE.md`, with enough detail for
+   release notes and migration documentation.
+5. Verify `package.json`, the lockfile when present, and `SDK_VERSION` all
+   contain the same version, then run the relevant build and source-line
+   checks.
+
+Do not treat a version bump as complete if any applicable checklist item is
+missing.
+
 ## Anti-Hallucination Rules
 
 Do not invent Canvas behavior.
