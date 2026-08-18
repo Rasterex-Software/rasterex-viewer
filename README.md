@@ -353,7 +353,11 @@ policy and package security scope.
 
 ## License
 
-This npm SDK is licensed under the MIT License.
+This npm SDK is proprietary software and is licensed under the Rasterex Viewer
+SDK License included in this package. It permits evaluation, development,
+testing, demonstrations, and proofs of concept. Commercial and production use
+requires a separate written Rasterex agreement covering the relevant deployment
+and use.
 
 The SDK embeds Rasterex Canvas/viewer deployments through an iframe. The
 Rasterex Canvas application, hosted services, server components, viewer assets,
