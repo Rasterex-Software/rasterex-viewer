@@ -16,7 +16,6 @@ export interface DocumentOpenOptions {
 }
 
 export interface DocumentOpenFileOptions {
-  cacheId?: string;
   requestId?: string;
 }
 

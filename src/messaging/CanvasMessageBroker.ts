@@ -48,7 +48,11 @@ export class CanvasMessageBroker {
     this.isListening = true;
   }
 
-  send<TPayload = unknown>(type: string, payload?: TPayload): void {
+  send<TPayload = unknown>(
+    type: string,
+    payload?: TPayload,
+    transfer?: Transferable[]
+  ): void {
     const contentWindow = this.iframe.contentWindow;
 
     if (!contentWindow) {
@@ -56,7 +60,15 @@ export class CanvasMessageBroker {
       return;
     }
 
-    contentWindow.postMessage({ type, payload }, this.targetOrigin);
+    if (transfer?.length) {
+      contentWindow.postMessage(
+        { type, payload },
+        this.targetOrigin,
+        transfer
+      );
+    } else {
+      contentWindow.postMessage({ type, payload }, this.targetOrigin);
+    }
     this.diagnostics?.emit("canvas.command.sent", {
       sdkInstanceId: this.sdkInstanceId,
       timestamp: new Date().toISOString(),

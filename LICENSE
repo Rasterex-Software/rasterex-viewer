@@ -1,21 +1,79 @@
-MIT License
+# Rasterex Viewer SDK Evaluation License
 
-Copyright (c) 2026 Rasterex Software AS
+**Version 1.0 — 2026**
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Copyright © 2026 Rasterex Software AS. All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The `@rasterex/viewer` package (the **“SDK”**) is proprietary software owned by Rasterex Software AS (**“Rasterex”**).
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+The SDK is publicly available through npm to simplify evaluation, development, testing, and proof-of-concept integrations.
+
+**Public availability does not make the SDK open-source software and does not grant open-source rights.**
+
+By downloading, installing, or using the SDK, you agree to this License.
+
+## 1. Evaluation Use
+
+Rasterex grants you a limited, non-exclusive, non-transferable, and non-sublicensable right to download, install, integrate, and use the SDK solely for:
+
+* evaluation;
+* development;
+* testing;
+* demonstrations; and
+* proofs of concept.
+
+You may bundle the SDK into an application where necessary for these purposes.
+
+This License does not grant production or commercial deployment rights.
+
+## 2. Rasterex Sandbox
+
+The SDK may be used with the Rasterex-hosted Sandbox for evaluation and development purposes.
+
+When you use the Sandbox, files, documents, and other data you submit are transmitted to and processed on infrastructure operated or controlled by Rasterex.
+
+You are responsible for ensuring that you have the necessary rights to submit such data.
+
+The Sandbox is an evaluation environment and is not intended for production use.
+
+## 3. Production Use
+
+This License does not grant rights to use the public SDK package in production or as part of a commercial deployment.
+
+It also does not grant production rights to Rasterex Canvas, the Rasterex Backend Engine, Rasterex Backend, server software, executables, or other Rasterex production technology.
+
+If you want to build or deploy a production solution using Rasterex technology, [contact Rasterex](https://rasterex.com/contact).
+
+Production customers receive the applicable software, backend components, deployment rights, and licensing terms under a separate written agreement with Rasterex.
+
+## 4. Restrictions and Ownership
+
+Unless Rasterex agrees otherwise in writing, you may not:
+
+* use the SDK in production;
+* sell, resell, sublicense, or redistribute the SDK as a standalone package or development component;
+* use the SDK for OEM distribution;
+* remove Rasterex copyright, license, trademark, or proprietary notices; or
+* circumvent Rasterex licensing, authentication, or access controls.
+
+Rasterex and its licensors retain all ownership and intellectual property rights in the SDK.
+
+All rights not expressly granted are reserved.
+
+## 5. Warranty and Liability
+
+The SDK and Sandbox are provided for evaluation purposes **“AS IS”** and **“AS AVAILABLE.”**
+
+To the maximum extent permitted by law, Rasterex disclaims warranties relating to the SDK and Sandbox and is not liable for indirect, incidental, special, consequential, or punitive damages arising from their evaluation use.
+
+Nothing in this License excludes liability that cannot lawfully be excluded.
+
+## 6. Other Terms
+
+If you have a separate written agreement with Rasterex, that agreement controls for the products and rights it covers.
+
+This License applies only to releases that include or reference it and does not change the license terms applicable to earlier releases.
+
+This License is governed by the laws of Norway.
+
+For production licensing, commercial deployment, OEM use, or access to the full Rasterex SDK and backend technology, [contact Rasterex Software AS](https://rasterex.com/contact).

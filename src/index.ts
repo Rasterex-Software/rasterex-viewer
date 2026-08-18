@@ -110,6 +110,15 @@ export type {
 export type {
   AnnotationDataFilter,
   AnnotationDataItem,
+  AnnotationCreatedWithDetailData,
+  AnnotationCreatedWithDetailEvent,
+  AnnotationCreationOperation,
+  AnnotationDeletedWithDetailData,
+  AnnotationDeletedWithDetailEvent,
+  AnnotationDetailData,
+  AnnotationDetailEntity,
+  AnnotationDetailOperation,
+  AnnotationDetailPoints,
   AnnotationEvent,
   AnnotationEventData,
   AnnotationEventHandler,
@@ -117,7 +126,10 @@ export type {
   AnnotationEventName,
   AnnotationEventUnsubscribe,
   AnnotationNormalizedData,
+  AnnotationNormalizedEvent,
   AnnotationRawData,
+  AnnotationSelectedWithDetailData,
+  AnnotationSelectedWithDetailEvent,
   AnnotationRect,
   AnnotationVisibilityOptions,
   AnnotationVisibilityResult,
@@ -282,6 +294,7 @@ export type {
   IframeTransportUnsubscribe
 } from "./messaging/IframeTransport.js";
 export type {
+  EvaluationRegistrationOptions,
   RasterexViewerInfo,
   RasterexViewerOptions,
   ViewerState

@@ -128,3 +128,20 @@ export function createDocumentLoadFailedError(
     context
   });
 }
+
+export function createEvaluationError(
+  code:
+    | typeof ERROR_CODES.evaluationExpired
+    | typeof ERROR_CODES.invalidToken
+    | typeof ERROR_CODES.evaluationRegistrationRequired
+    | typeof ERROR_CODES.evaluationRegistrationFailed
+    | typeof ERROR_CODES.evaluationValidationFailed,
+  message: string,
+  context?: Record<string, unknown>
+): RasterexViewerError {
+  return new RasterexViewerError({
+    code,
+    message,
+    context
+  });
+}

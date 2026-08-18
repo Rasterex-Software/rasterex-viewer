@@ -1,4 +1,4 @@
-export const SDK_VERSION = "2.0.0";
+export const SDK_VERSION = "2.1.0";
 export const DEFAULT_VIEWER_URL = "https://sandbox.rasterex.com";
 export const DEFAULT_TARGET_ORIGIN = "https://sandbox.rasterex.com";
 export const DEFAULT_IFRAME_TITLE = "Rasterex Viewer";
