@@ -5,6 +5,7 @@ import type {
 
 export interface RasterexViewerOptions {
   container: HTMLElement | string;
+  evaluation: EvaluationRegistrationOptions;
   viewerUrl?: string;
   targetOrigin?: string;
   connectTimeoutMs?: number;
@@ -14,6 +15,11 @@ export interface RasterexViewerOptions {
   iframeTitle?: string;
   iframeClassName?: string;
   iframeAttributes?: Record<string, string>;
+}
+
+export interface EvaluationRegistrationOptions {
+  company: string;
+  email: string;
 }
 
 export type ViewerState =

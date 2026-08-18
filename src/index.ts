@@ -294,6 +294,7 @@ export type {
   IframeTransportUnsubscribe
 } from "./messaging/IframeTransport.js";
 export type {
+  EvaluationRegistrationOptions,
   RasterexViewerInfo,
   RasterexViewerOptions,
   ViewerState

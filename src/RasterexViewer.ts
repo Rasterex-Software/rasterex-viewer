@@ -15,10 +15,12 @@ import { Diagnostics } from "./diagnostics.js";
 import {
   CAPABILITIES,
   PROTOCOL_VERSION,
-  VIEWER_READY_MESSAGE_TYPE,
   type Capability,
   type ViewerReadyMessage
 } from "./protocol/index.js";
+import { EvaluationService } from "./evaluation/EvaluationService.js";
+import { showEvaluationErrorPanel } from "./evaluation/EvaluationErrorPanel.js";
+import { isViewerReadyMessage } from "./lifecycle/isViewerReadyMessage.js";
 import { ViewerMessagingSession } from "./messaging/ViewerMessagingSession.js";
 import { CanvasApi } from "./domains/canvas/CanvasApi.js";
 import { DocumentsApi } from "./domains/documents/DocumentsApi.js";
@@ -50,6 +52,7 @@ export class RasterexViewer {
   private readonly readyTimeoutMs: number;
   private readonly commandTimeoutMs: number;
   private readonly sdkInstanceId: string;
+  private readonly evaluation: EvaluationService;
   readonly diagnostics: Diagnostics;
   readonly canvas: CanvasApi;
   readonly documents: DocumentsApi;
@@ -86,6 +89,7 @@ export class RasterexViewer {
     this.readyTimeoutMs = options.readyTimeoutMs ?? DEFAULT_READY_TIMEOUT_MS;
     this.commandTimeoutMs = options.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
     this.sdkInstanceId = createSdkInstanceId();
+    this.evaluation = new EvaluationService(options.evaluation);
     this.diagnostics = new Diagnostics(options.debug ?? false);
     this.canvas = new CanvasApi({
       getBroker: () => this.getCanvasBroker()
@@ -197,31 +201,22 @@ export class RasterexViewer {
       this.startMessaging(iframe);
       container.appendChild(iframe);
     });
-
     return this.mountPromise;
   }
 
   ready(): Promise<void> {
-    if (this.state === "ready") {
-      return Promise.resolve();
-    }
-
+    if (this.state === "ready") return Promise.resolve();
     if (!this.iframe?.isConnected || !this.messagingSession) {
       return Promise.reject(
         createViewerNotReadyError("RasterexViewer must be mounted before ready() is called.")
       );
     }
-
-    if (this.readyPromise) {
-      return this.readyPromise;
-    }
-
+    if (this.readyPromise) return this.readyPromise;
     const messagingSession = this.messagingSession;
     this.state = "handshaking";
     this.readyPromise = new Promise((resolve, reject) => {
       let unsubscribe: (() => void) | null = null;
       let unsubscribeCanvasReady: (() => void) | null = null;
-
       const cleanup = () => {
         window.clearTimeout(timeoutId);
         unsubscribe?.();
@@ -230,24 +225,30 @@ export class RasterexViewer {
         this.readyCleanup = null;
         this.readyReject = null;
       };
-
       this.readyCleanup = cleanup;
       this.readyReject = reject;
-
       const timeoutId = window.setTimeout(() => {
         this.emitHandshakeSlow();
       }, this.readyTimeoutMs);
 
       const completeCanvasReady = () => {
-        this.completeCanvasBrokerReady(cleanup, resolve);
+        this.completeAfterEvaluation(
+          () => this.completeCanvasBrokerReady(cleanup, resolve),
+          cleanup,
+          reject
+        );
       };
 
       unsubscribe = messagingSession.transport.onMessage((message) => {
-        if (!this.isViewerReadyMessage(message)) {
+        if (!isViewerReadyMessage(message, this.sdkInstanceId)) {
           return;
         }
 
-        this.completeProtocolReady(message, cleanup, resolve, reject);
+        this.completeAfterEvaluation(
+          () => this.completeProtocolReady(message, cleanup, resolve, reject),
+          cleanup,
+          reject
+        );
       });
 
       if (messagingSession.canvasBroker.hasReceived("viewerReady")) {
@@ -258,7 +259,6 @@ export class RasterexViewer {
         });
       }
     });
-
     return this.readyPromise;
   }
 
@@ -269,7 +269,11 @@ export class RasterexViewer {
       return;
     }
 
+    this.iframe.parentElement
+      ?.querySelector("[data-rasterex-evaluation-error='true']")
+      ?.remove();
     this.iframe.remove();
+    this.evaluation.destroy();
     this.iframe = null;
     this.mountPromise = null;
     const rejectReady = this.readyReject;
@@ -322,30 +326,8 @@ export class RasterexViewer {
     };
   }
 
-  private isViewerReadyMessage(
-    message: unknown
-  ): message is ViewerReadyMessage {
-    if (!message || typeof message !== "object") {
-      return false;
-    }
-
-    const candidate = message as Partial<ViewerReadyMessage>;
-
-    return (
-      candidate.type === VIEWER_READY_MESSAGE_TYPE &&
-      candidate.sdkInstanceId === this.sdkInstanceId &&
-      typeof candidate.canvasSessionId === "string" &&
-      typeof candidate.protocolVersion === "string" &&
-      typeof candidate.canvasVersion === "string" &&
-      typeof candidate.buildDate === "string" &&
-      Array.isArray(candidate.capabilities) &&
-      typeof candidate.minimumSdkVersion === "string"
-    );
-  }
-
   private createIframe(): HTMLIFrameElement {
     const iframe = document.createElement("iframe");
-
     iframe.src = this.viewerUrl;
     iframe.width = "100%";
     iframe.height = "100%";
@@ -397,6 +379,23 @@ export class RasterexViewer {
     this.state = "ready";
     this.emitHandshakeComplete("current-canvas", this.canvasSessionId);
     resolve();
+  }
+
+  private completeAfterEvaluation(
+    complete: () => void,
+    cleanup: () => void,
+    reject: (error: Error) => void
+  ): void {
+    void this.evaluation.initialize().then(complete, (error: Error) => {
+      if (this.state !== "handshaking") {
+        return;
+      }
+
+      cleanup();
+      this.state = "error";
+      showEvaluationErrorPanel(this.iframe, error);
+      reject(error);
+    });
   }
 
   private completeProtocolReady(

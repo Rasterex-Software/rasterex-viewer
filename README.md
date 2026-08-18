@@ -8,6 +8,29 @@ features.
 Customer production deployments are self-hosted. Rasterex provides a hosted
 Canvas Sandbox for evaluation and proof-of-concept testing.
 
+## Evaluation
+
+For a new evaluation, provide a company name and company email:
+
+```ts
+const viewer = createViewer({
+  container: "#rx-viewer",
+  evaluation: {
+    company: "Example Company",
+    email: "user@example.com"
+  }
+});
+```
+
+The SDK registers the evaluation and validates it before `viewer.ready()`
+resolves. Later startups continue through backend validation; expiry is
+determined by the backend.
+
+If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
+`INVALID_TOKEN`, `EVALUATION_REGISTRATION_REQUIRED`,
+`EVALUATION_REGISTRATION_FAILED`, or `EVALUATION_VALIDATION_FAILED`. The viewer
+container also displays an accessible error message.
+
 Full [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
@@ -37,7 +60,11 @@ import { createViewer } from "@rasterex/viewer";
 const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: "https://viewer.example.com",
-  targetOrigin: "https://viewer.example.com"
+  targetOrigin: "https://viewer.example.com",
+  evaluation: {
+    company: "Example Company",
+    email: "user@example.com"
+  }
 });
 
 await viewer.mount();
@@ -317,7 +344,11 @@ import { sandboxCanvas } from "@rasterex/viewer/demo-presets";
 const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: sandboxCanvas.viewerUrl,
-  targetOrigin: sandboxCanvas.targetOrigin
+  targetOrigin: sandboxCanvas.targetOrigin,
+  evaluation: {
+    company: "Example Company",
+    email: "user@example.com"
+  }
 });
 ```
 
@@ -331,7 +362,7 @@ viewer.destroy();
 
 ## Supply Chain Security
 
-The SDK is designed to stay lightweight and air-gap friendly:
+The SDK is designed to stay lightweight:
 
 - No runtime npm dependencies.
 - No install-time scripts.
