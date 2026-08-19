@@ -70,19 +70,17 @@ test("evaluation activation and validation lifecycle", async (t) => {
     assert.equal(calls, 1);
   });
 
-  await t.test("registers without company or email details", async () => {
-    const calls = [];
+  await t.test("does not register without company or email details", async () => {
+    let calls = 0;
     installBrowser({
-      fetch: async (url, options) => {
-        calls.push({ url, body: options.body });
-        return calls.length === 1
-          ? json({ token: "anonymous-token", expires: "2026-09-17T11:48:06.069Z" })
-          : json({ valid: true, expires: "2026-09-17T11:48:06.069Z", reason: null });
+      fetch: async () => {
+        calls += 1;
+        return json({ token: "unexpected", expires: "2026-09-17T11:48:06.069Z" });
       }
     });
 
     await new EvaluationService().initialize();
-    assert.deepEqual(JSON.parse(calls[0].body), {});
+    assert.equal(calls, 0);
   });
 
   await t.test("uses registration when company and email are supplied", async () => {

@@ -48,8 +48,15 @@ export class EvaluationService {
   }
 
   private async initializeEvaluation(): Promise<EvaluationValidation> {
-    const token = this.readToken() ?? (await this.createAndStoreToken());
-    return this.validateToken(token);
+    const token = this.readToken();
+
+    // The anonymous registration endpoint rejects an empty request body. Until
+    // an anonymous activation flow is available, do not make that request.
+    if (!token && !hasRegistrationDetails(this.registration)) {
+      return { expires: "" };
+    }
+
+    return this.validateToken(token ?? (await this.createAndStoreToken()));
   }
 
   private readToken(): string | null {
@@ -309,5 +316,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasRegistrationDetails(
+  registration?: EvaluationRegistrationOptions
+): boolean {
+  return (
+    isNonEmptyString(registration?.company) ||
+    isNonEmptyString(registration?.email)
+  );
 }
