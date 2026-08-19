@@ -70,20 +70,19 @@ test("evaluation activation and validation lifecycle", async (t) => {
     assert.equal(calls, 1);
   });
 
-  await t.test("requires registration details for a new evaluation", async () => {
-    let calls = 0;
+  await t.test("registers without company or email details", async () => {
+    const calls = [];
     installBrowser({
-      fetch: async () => {
-        calls += 1;
-        return json({ token: "unexpected", expires: "2026-09-17T11:48:06.069Z" });
+      fetch: async (url, options) => {
+        calls.push({ url, body: options.body });
+        return calls.length === 1
+          ? json({ token: "anonymous-token", expires: "2026-09-17T11:48:06.069Z" })
+          : json({ valid: true, expires: "2026-09-17T11:48:06.069Z", reason: null });
       }
     });
 
-    await assert.rejects(
-      new EvaluationService(undefined).initialize(),
-      (error) => error.code === "EVALUATION_REGISTRATION_REQUIRED"
-    );
-    assert.equal(calls, 0);
+    await new EvaluationService().initialize();
+    assert.deepEqual(JSON.parse(calls[0].body), {});
   });
 
   await t.test("uses registration when company and email are supplied", async () => {

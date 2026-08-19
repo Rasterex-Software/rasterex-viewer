@@ -10,25 +10,13 @@ Canvas Sandbox for evaluation and proof-of-concept testing.
 
 ## Evaluation
 
-For a new evaluation, provide a company name and company email:
-
-```ts
-const viewer = createViewer({
-  container: "#rx-viewer",
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
-});
-```
-
-The SDK registers the evaluation and validates it before `viewer.ready()`
-resolves. Later startups continue through backend validation; expiry is
-determined by the backend.
+The SDK registers and validates the evaluation before `viewer.ready()` resolves.
+Later startups continue through backend validation; expiry is determined by the
+backend.
 
 If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
-`INVALID_TOKEN`, `EVALUATION_REGISTRATION_REQUIRED`,
-`EVALUATION_REGISTRATION_FAILED`, or `EVALUATION_VALIDATION_FAILED`. The viewer
+`INVALID_TOKEN`, `EVALUATION_REGISTRATION_FAILED`, or
+`EVALUATION_VALIDATION_FAILED`. The viewer
 container also displays an accessible error message.
 
 Full [documentation](https://docs.rasterex.com/) ·
@@ -61,10 +49,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: "https://viewer.example.com",
   targetOrigin: "https://viewer.example.com",
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 
 await viewer.mount();
@@ -345,10 +329,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: sandboxCanvas.viewerUrl,
   targetOrigin: sandboxCanvas.targetOrigin,
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 ```
 

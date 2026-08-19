@@ -31,7 +31,7 @@ export class EvaluationService {
   private controller: AbortController | null = null;
   private destroyed = false;
 
-  constructor(private readonly registration: EvaluationRegistrationOptions) {}
+  constructor(private readonly registration?: EvaluationRegistrationOptions) {}
 
   initialize(): Promise<EvaluationValidation> {
     if (!this.initialization) {
@@ -133,21 +133,17 @@ export class EvaluationService {
   }
 
   private async requestRegistration(): Promise<ActivationResponse> {
-    if (
-      !this.registration ||
-      !isNonEmptyString(this.registration.company) ||
-      !isNonEmptyString(this.registration.email)
-    ) {
-      throw createEvaluationError(
-        ERROR_CODES.evaluationRegistrationRequired,
-        "Company and email are required to start a Rasterex Viewer evaluation."
-      );
+    const body: Record<string, string> = {};
+
+    if (isNonEmptyString(this.registration?.company)) {
+      body.company = this.registration.company.trim();
     }
 
-    const response = await this.request("register", {
-      company: this.registration.company.trim(),
-      email: this.registration.email.trim()
-    });
+    if (isNonEmptyString(this.registration?.email)) {
+      body.email = this.registration.email.trim();
+    }
+
+    const response = await this.request("register", body);
 
     if (!response.ok) {
       throw new EvaluationHttpError(response.status);
