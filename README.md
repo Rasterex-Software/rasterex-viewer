@@ -10,7 +10,20 @@ Canvas Sandbox for evaluation and proof-of-concept testing.
 
 ## Evaluation
 
-For a new evaluation, provide a company name and company email:
+The SDK automatically starts and validates a 30-day evaluation before
+`viewer.ready()` resolves. No license key, company name, or email address is
+required. Evaluation expiry is determined by Rasterex.
+
+If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
+`INVALID_TOKEN`, `EVALUATION_ACTIVATION_FAILED`,
+`EVALUATION_REGISTRATION_FAILED`, or
+`EVALUATION_VALIDATION_FAILED`. The viewer
+container also displays an accessible error message.
+
+### Optional Company Details
+
+You may optionally provide both a company name and email address when creating
+the viewer:
 
 ```ts
 const viewer = createViewer({
@@ -22,14 +35,8 @@ const viewer = createViewer({
 });
 ```
 
-The SDK registers the evaluation and validates it before `viewer.ready()`
-resolves. Later startups continue through backend validation; expiry is
-determined by the backend.
-
-If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
-`INVALID_TOKEN`, `EVALUATION_REGISTRATION_REQUIRED`,
-`EVALUATION_REGISTRATION_FAILED`, or `EVALUATION_VALIDATION_FAILED`. The viewer
-container also displays an accessible error message.
+Both fields are optional. Supplying only one is treated the same as omitting
+them. Adding or changing these values does not restart an existing evaluation.
 
 Full [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
@@ -61,10 +68,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: "https://viewer.example.com",
   targetOrigin: "https://viewer.example.com",
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 
 await viewer.mount();
@@ -345,10 +348,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: sandboxCanvas.viewerUrl,
   targetOrigin: sandboxCanvas.targetOrigin,
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 ```
 

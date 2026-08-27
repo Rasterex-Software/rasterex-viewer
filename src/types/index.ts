@@ -5,7 +5,8 @@ import type {
 
 export interface RasterexViewerOptions {
   container: HTMLElement | string;
-  evaluation: EvaluationRegistrationOptions;
+  /** Optional company details for the initial evaluation. */
+  evaluation?: EvaluationRegistrationOptions;
   viewerUrl?: string;
   targetOrigin?: string;
   connectTimeoutMs?: number;
@@ -18,8 +19,10 @@ export interface RasterexViewerOptions {
 }
 
 export interface EvaluationRegistrationOptions {
-  company: string;
-  email: string;
+  /** Optional company name; provide it together with `email`. */
+  company?: string;
+  /** Optional email address; provide it together with `company`. */
+  email?: string;
 }
 
 export type ViewerState =

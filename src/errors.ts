@@ -134,6 +134,7 @@ export function createEvaluationError(
     | typeof ERROR_CODES.evaluationExpired
     | typeof ERROR_CODES.invalidToken
     | typeof ERROR_CODES.evaluationRegistrationRequired
+    | typeof ERROR_CODES.evaluationActivationFailed
     | typeof ERROR_CODES.evaluationRegistrationFailed
     | typeof ERROR_CODES.evaluationValidationFailed,
   message: string,

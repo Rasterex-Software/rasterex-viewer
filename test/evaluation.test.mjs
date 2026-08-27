@@ -45,45 +45,47 @@ test("evaluation activation and validation lifecycle", async (t) => {
       }
     });
 
-    const result = await new EvaluationService({
-      company: "Example Company",
-      email: "user@example.com"
-    }).initialize();
+    const result = await new EvaluationService().initialize();
 
     assert.equal(result.expires, "2026-09-17T11:48:06.069Z");
     assert.equal(storage.get("rx_viewspace_evaluation_token"), "evaluation-token");
     assert.equal(calls.length, 2);
+    assert.match(calls[0].url, /\/activate$/);
+    assert.deepEqual(JSON.parse(calls[0].body), {});
     assert.deepEqual(JSON.parse(calls[1].body), { token: "evaluation-token" });
   });
 
-  await t.test("uses an existing token without registering again", async () => {
-    let calls = 0;
+  await t.test("uses an existing token without creating a replacement when registration details are supplied", async () => {
+    const calls = [];
     installBrowser({
       token: "stored-token",
-      fetch: async () => {
-        calls += 1;
+      fetch: async (url, options) => {
+        calls.push({ url, body: options.body });
         return json({ valid: true, expires: "2026-09-17T11:48:06.069Z", reason: null });
       }
     });
 
-    await new EvaluationService().initialize();
-    assert.equal(calls, 1);
+    await new EvaluationService({ company: "Example Company", email: "user@example.com" }).initialize();
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].url, /\/validate$/);
+    assert.deepEqual(JSON.parse(calls[0].body), { token: "stored-token" });
   });
 
-  await t.test("requires registration details for a new evaluation", async () => {
-    let calls = 0;
+  await t.test("uses anonymous activation when registration details are absent or incomplete", async () => {
+    const calls = [];
     installBrowser({
-      fetch: async () => {
-        calls += 1;
-        return json({ token: "unexpected", expires: "2026-09-17T11:48:06.069Z" });
+      fetch: async (url, options) => {
+        calls.push({ url, body: options.body });
+        return calls.length === 1
+          ? json({ token: "anonymous-token", expires: "2026-09-17T11:48:06.069Z" })
+          : json({ valid: true, expires: "2026-09-17T11:48:06.069Z", reason: null });
       }
     });
 
-    await assert.rejects(
-      new EvaluationService(undefined).initialize(),
-      (error) => error.code === "EVALUATION_REGISTRATION_REQUIRED"
-    );
-    assert.equal(calls, 0);
+    await new EvaluationService({ company: "Example Company" }).initialize();
+    assert.equal(calls.length, 2);
+    assert.match(calls[0].url, /\/activate$/);
+    assert.deepEqual(JSON.parse(calls[0].body), {});
   });
 
   await t.test("uses registration when company and email are supplied", async () => {
@@ -136,6 +138,22 @@ test("evaluation activation and validation lifecycle", async (t) => {
       (error) => error.code === "EVALUATION_REGISTRATION_FAILED"
     );
     await assert.rejects(service.initialize());
+    assert.equal(calls, 1);
+  });
+
+  await t.test("does not retry anonymous activation when the request fails", async () => {
+    let calls = 0;
+    installBrowser({
+      fetch: async () => {
+        calls += 1;
+        throw new TypeError("network unavailable");
+      }
+    });
+
+    await assert.rejects(
+      new EvaluationService().initialize(),
+      (error) => error.code === "EVALUATION_ACTIVATION_FAILED"
+    );
     assert.equal(calls, 1);
   });
 
