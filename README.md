@@ -10,14 +10,33 @@ Canvas Sandbox for evaluation and proof-of-concept testing.
 
 ## Evaluation
 
-The SDK registers and validates the evaluation before `viewer.ready()` resolves.
-Later startups continue through backend validation; expiry is determined by the
-backend.
+The SDK automatically starts and validates a 30-day evaluation before
+`viewer.ready()` resolves. No license key, company name, or email address is
+required. Evaluation expiry is determined by Rasterex.
 
 If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
-`INVALID_TOKEN`, `EVALUATION_REGISTRATION_FAILED`, or
+`INVALID_TOKEN`, `EVALUATION_ACTIVATION_FAILED`,
+`EVALUATION_REGISTRATION_FAILED`, or
 `EVALUATION_VALIDATION_FAILED`. The viewer
 container also displays an accessible error message.
+
+### Optional Company Details
+
+You may optionally provide both a company name and email address when creating
+the viewer:
+
+```ts
+const viewer = createViewer({
+  container: "#rx-viewer",
+  evaluation: {
+    company: "Example Company",
+    email: "user@example.com"
+  }
+});
+```
+
+Both fields are optional. Supplying only one is treated the same as omitting
+them. Adding or changing these values does not restart an existing evaluation.
 
 Full [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·

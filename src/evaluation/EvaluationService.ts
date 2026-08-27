@@ -49,13 +49,6 @@ export class EvaluationService {
 
   private async initializeEvaluation(): Promise<EvaluationValidation> {
     const token = this.readToken();
-
-    // The anonymous registration endpoint rejects an empty request body. Until
-    // an anonymous activation flow is available, do not make that request.
-    if (!token && !hasRegistrationDetails(this.registration)) {
-      return { expires: "" };
-    }
-
     return this.validateToken(token ?? (await this.createAndStoreToken()));
   }
 
@@ -70,25 +63,28 @@ export class EvaluationService {
 
   private async createAndStoreToken(): Promise<string> {
     let response: ActivationResponse;
+    const failureCode = getRegistrationDetails(this.registration)
+      ? ERROR_CODES.evaluationRegistrationFailed
+      : ERROR_CODES.evaluationActivationFailed;
 
     try {
-      response = await this.requestRegistration();
+      response = await this.requestActivation();
     } catch (cause) {
       if (cause instanceof RasterexViewerError) {
         throw cause;
       }
 
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "request", cause);
+      throw this.createFailure(failureCode, "request", cause);
     }
 
     if (!isNonEmptyString(response.token)) {
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "response");
+      throw this.createFailure(failureCode, "response");
     }
 
     try {
       window.localStorage.setItem(VIEWSPACE_EVALUATION_TOKEN_KEY, response.token);
     } catch (cause) {
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "storage", cause);
+      throw this.createFailure(failureCode, "storage", cause);
     }
 
     return response.token;
@@ -139,18 +135,12 @@ export class EvaluationService {
     throw this.toValidationFailure(lastError);
   }
 
-  private async requestRegistration(): Promise<ActivationResponse> {
-    const body: Record<string, string> = {};
-
-    if (isNonEmptyString(this.registration?.company)) {
-      body.company = this.registration.company.trim();
-    }
-
-    if (isNonEmptyString(this.registration?.email)) {
-      body.email = this.registration.email.trim();
-    }
-
-    const response = await this.request("register", body);
+  private async requestActivation(): Promise<ActivationResponse> {
+    const registration = getRegistrationDetails(this.registration);
+    const response = await this.request(
+      registration ? "register" : "activate",
+      registration ?? {}
+    );
 
     if (!response.ok) {
       throw new EvaluationHttpError(response.status);
@@ -244,6 +234,7 @@ export class EvaluationService {
 
   private createFailure(
     code:
+      | typeof ERROR_CODES.evaluationActivationFailed
       | typeof ERROR_CODES.evaluationRegistrationFailed
       | typeof ERROR_CODES.evaluationValidationFailed,
     stage: "storage-read" | "storage" | "request" | "response" | "registration",
@@ -251,9 +242,11 @@ export class EvaluationService {
   ): RasterexViewerError {
     return createEvaluationError(
       code,
-      code === ERROR_CODES.evaluationRegistrationFailed
-        ? "Rasterex Viewer evaluation registration failed."
-        : "Rasterex Viewer evaluation validation failed.",
+      code === ERROR_CODES.evaluationActivationFailed
+        ? "Rasterex Viewer evaluation activation failed."
+        : code === ERROR_CODES.evaluationRegistrationFailed
+          ? "Rasterex Viewer evaluation registration failed."
+          : "Rasterex Viewer evaluation validation failed.",
       {
         stage,
         ...(cause instanceof EvaluationHttpError ? { status: cause.status } : {}),
@@ -319,11 +312,15 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function hasRegistrationDetails(
+function getRegistrationDetails(
   registration?: EvaluationRegistrationOptions
-): boolean {
-  return (
-    isNonEmptyString(registration?.company) ||
-    isNonEmptyString(registration?.email)
-  );
+): Record<string, string> | undefined {
+  if (!isNonEmptyString(registration?.company) || !isNonEmptyString(registration?.email)) {
+    return undefined;
+  }
+
+  return {
+    company: registration.company.trim(),
+    email: registration.email.trim()
+  };
 }
