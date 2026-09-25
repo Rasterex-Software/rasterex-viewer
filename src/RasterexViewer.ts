@@ -33,6 +33,7 @@ import { StylesApi } from "./domains/styles/StylesApi.js";
 import { LayersApi } from "./domains/layers/LayersApi.js";
 import { BlocksApi } from "./domains/blocks/BlocksApi.js";
 import { ViewSyncApi } from "./domains/view-sync/ViewSyncApi.js";
+import { ClientCompareApi } from "./domains/client-compare/ClientCompareApi.js";
 import { evaluateCompatibility } from "./utils/compatibility.js";
 import { createSdkInstanceId } from "./utils/createSdkInstanceId.js";
 import { deriveOrigin } from "./utils/deriveOrigin.js";
@@ -62,6 +63,7 @@ export class RasterexViewer {
   readonly layers: LayersApi;
   readonly blocks: BlocksApi;
   readonly viewSync: ViewSyncApi;
+  readonly clientCompare: ClientCompareApi;
   private state: ViewerState = "idle";
   private iframe: HTMLIFrameElement | null = null;
   private mountPromise: Promise<void> | null = null;
@@ -88,9 +90,7 @@ export class RasterexViewer {
     this.sdkInstanceId = createSdkInstanceId();
     this.evaluation = new EvaluationService(options.evaluation);
     this.diagnostics = new Diagnostics(options.debug ?? false);
-    this.canvas = new CanvasApi({
-      getBroker: () => this.getCanvasBroker()
-    });
+    this.canvas = new CanvasApi({ getBroker: () => this.getCanvasBroker() });
     this.documents = new DocumentsApi({
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
@@ -140,6 +140,11 @@ export class RasterexViewer {
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
     });
+    this.clientCompare = new ClientCompareApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
   }
   mount(): Promise<void> {
     if (this.iframe && this.iframe.isConnected) {
@@ -182,14 +187,9 @@ export class RasterexViewer {
       const handleLoad = () => {
         cleanup();
         this.state = "mounted";
-        this.documents.connect();
-        this.annotations.connect();
-        this.measurements.connect();
-        this.compare.connect();
-        this.collaboration.connect();
-        this.layers.connect();
-        this.blocks.connect();
-        this.viewSync.connect();
+        this.documents.connect(); this.annotations.connect(); this.measurements.connect();
+        this.compare.connect(); this.collaboration.connect(); this.layers.connect();
+        this.blocks.connect(); this.viewSync.connect(); this.clientCompare.connect();
         this.emitMountResolved();
         resolve();
       };
@@ -284,14 +284,9 @@ export class RasterexViewer {
     this.readyPromise = null;
     this.readyCleanup = null;
     this.readyReject = null;
-    this.documents.disconnect();
-    this.annotations.disconnect();
-    this.measurements.disconnect();
-    this.compare.disconnect();
-    this.collaboration.disconnect();
-    this.layers.disconnect();
-    this.blocks.disconnect();
-    this.viewSync.disconnect();
+    this.documents.disconnect(); this.annotations.disconnect(); this.measurements.disconnect();
+    this.compare.disconnect(); this.collaboration.disconnect(); this.layers.disconnect();
+    this.blocks.disconnect(); this.viewSync.disconnect(); this.clientCompare.disconnect();
     this.messagingSession?.destroy();
     this.messagingSession = null;
     this.state = "destroyed";

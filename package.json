@@ -1,6 +1,6 @@
 {
   "name": "@rasterex/viewer",
-  "version": "2.1.6",
+  "version": "2.2.0",
   "description": "Embed DWG, DXF, DGN, IFC and PDF viewing, markup, measurement and revision comparison in your web app. TypeScript SDK for the self-hosted Rasterex engine, with a hosted sandbox for evaluation.",
   "author": {
     "name": "Rasterex Software AS",
