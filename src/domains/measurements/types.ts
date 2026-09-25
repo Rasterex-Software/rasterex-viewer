@@ -12,7 +12,10 @@ export type MeasurementScalePageRange = number[];
 
 export interface MeasurementScale {
   label: string; value: string; preciseValue?: number; metric: MeasurementScaleUnitSystem;
-  metricUnit: MeasurementScaleUnit; dimPrecision: number; isSelected: boolean;
+  /** Fractional precision for linear measurements, such as 1/4", 1/8", or 1/16". */
+  metricUnit: MeasurementScaleUnit; dimPrecision: number;
+  /** Decimal precision for area measurements, such as square feet. */
+  decimalPrecision?: number; isSelected: boolean;
   isGlobal?: boolean; pageRanges?: MeasurementScalePageRange[]; source?: string;
   imperialNumerator?: number; imperialDenominator?: number;
 }

@@ -1,9 +1,9 @@
 # Rasterex Viewer SDK
 
-Embed Rasterex Canvas in a web application with a small, framework-independent
-TypeScript SDK. The SDK mounts Canvas in an iframe, communicates through
-PostMessage, and provides typed APIs for files, tools, events, and viewer
-features.
+Rasterex Viewer SDK puts technical drawings inside your own web application.
+Open DWG, DXF, DGN, IFC, PDF and 100+ other formats, then let users mark up,
+measure and compare revisions. The engine runs on your own infrastructure; this
+package is the typed client that embeds it.
 
 Customer production deployments are self-hosted. Rasterex provides a hosted
 Canvas Sandbox for evaluation and proof-of-concept testing.
@@ -38,7 +38,7 @@ const viewer = createViewer({
 Both fields are optional. Supplying only one is treated the same as omitting
 them. Adding or changing these values does not restart an existing evaluation.
 
-Full [documentation](https://docs.rasterex.com/) ·
+Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs/getting-started/quick-start) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
 [issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
@@ -52,8 +52,8 @@ environment for evaluation and proof-of-concept testing. The SDK embeds it in
 an iframe and sends Canvas broker messages to that origin.
 
 Documents opened in Sandbox must be reachable from the hosted viewer
-environment. The public PDF used in the examples is intentionally suitable for
-this purpose.
+environment. The public PDF and DWG used in the examples are intentionally
+suitable for this purpose.
 
 ### Self-Hosted Production
 
@@ -76,6 +76,15 @@ await viewer.ready();
 
 If `targetOrigin` is omitted, the SDK derives it from `viewerUrl` with
 `new URL(viewerUrl).origin`.
+
+## Deployment
+
+Rasterex Canvas production runs on Windows Server, and a Windows container
+deployment path is available. The hosted Sandbox is for evaluation and
+proof-of-concept testing only.
+
+The SDK package does not bundle the Canvas application. It loads a separately
+deployed hosted or self-hosted Canvas URL in an iframe.
 
 ## Install And Requirements
 
@@ -141,7 +150,7 @@ from the viewer URL when it is not provided.
 
 ## Open A Document
 
-After the viewer is ready, open a document URL:
+After the viewer is ready, open a PDF or a CAD document URL:
 
 ```ts
 await viewer.documents.open({
@@ -150,11 +159,18 @@ await viewer.documents.open({
   cacheId: "file_7f3a9c2_sample_pdf",
   mime: "application/pdf"
 });
+
+await viewer.documents.open({
+  url: "https://raw.githubusercontent.com/nextgis/dwg_samples/master/arc_2000.dwg",
+  displayName: "arc_2000.dwg",
+  cacheId: "sample_arc_2000_dwg",
+  mime: "application/acad"
+});
 ```
 
-The file URL must be reachable by the viewer environment. This example uses a
-public PDF for Sandbox demonstration only; production URLs must be reachable
-by your self-hosted Rasterex Canvas deployment.
+The file URL must be reachable by the viewer environment. These public files
+are for Sandbox demonstration only; production URLs must be reachable by your
+self-hosted Rasterex Canvas deployment.
 
 `displayName` should include the file extension, such as `sample.pdf`.
 `cacheId` should be a stable file or content ID from your application or server,
@@ -264,13 +280,50 @@ interface RasterexViewerOptions {
 | `container` | DOM element or selector where the iframe is mounted. |
 | `viewerUrl` | Viewer URL to load. Defaults to `https://sandbox.rasterex.com`. |
 | `targetOrigin` | Trusted origin for viewer messages. Defaults to the origin of `viewerUrl`. |
-| `connectTimeoutMs` | Timeout for iframe loading. |
-| `readyTimeoutMs` | Timeout while waiting for viewer readiness. |
+| `connectTimeoutMs` | Advisory duration after which the SDK emits a slow iframe diagnostic; it does not reject `mount()`. |
+| `readyTimeoutMs` | Advisory duration after which the SDK emits a slow readiness diagnostic; it does not reject `ready()`. |
 | `commandTimeoutMs` | Timeout for commands that wait for a viewer response. |
 | `debug` | Writes SDK diagnostics to `console.debug`. |
 | `iframeTitle` | Accessible iframe title. |
 | `iframeClassName` | CSS class applied to the iframe. |
 | `iframeAttributes` | Extra iframe attributes, for example `{ allow: "fullscreen" }`. |
+
+## Capabilities
+
+These calls expose the main CAD, markup and review workflows:
+
+```ts
+const layers = await viewer.layers.getLayers();
+
+const blocks = await viewer.blocks.getBlocks();
+const attributes = await viewer.blocks.getAttributes({
+  index: blocks.blocks[0]?.index ?? 0
+});
+
+viewer.measurements.scale.add({
+  scale: {
+    label: "1:100",
+    value: "100",
+    metric: "metric",
+    metricUnit: "Millimeter",
+    dimPrecision: 2,
+    isSelected: true
+  }
+});
+
+viewer.compare.compare({
+  backgroundUrl: "https://files.example.com/revision-a.dwg",
+  overlayUrl: "https://files.example.com/revision-b.dwg"
+});
+
+viewer.annotations.on("created", (event) => {
+  console.log("Created annotation:", event.guid);
+});
+```
+
+`annotations.getData()` resolves to `{ filter, requestId, items, count }`.
+Annotation event IDs are on `event.guid`. `comparisonComplete` handlers
+receive the `ComparisonResult` directly; it is not wrapped in `.data`.
 
 ## Common APIs
 
@@ -289,8 +342,8 @@ if (firstLayer?.index !== undefined) {
 const blocks = await viewer.blocks.getBlocks();
 const firstBlock = blocks.blocks[0];
 if (firstBlock?.index !== undefined) {
-  await viewer.blocks.getBlockDetails({ index: firstBlock.index });
-  viewer.blocks.setBlockVisibility({ index: firstBlock.index, visible: false });
+  await viewer.blocks.getDetails({ index: firstBlock.index });
+  viewer.blocks.setVisibility({ index: firstBlock.index, visible: false });
 }
 
 viewer.compare.compare({ backgroundUrl: "old.pdf", overlayUrl: "new.pdf" });
@@ -318,6 +371,22 @@ const unsubscribe = viewer.annotations.on("created", (event) => {
 });
 
 unsubscribe();
+```
+
+### Readiness Bounds
+
+`connectTimeoutMs` and `readyTimeoutMs` are advisory diagnostics. They do not
+reject `mount()` or `ready()`, so `ready()` can remain pending when the Canvas
+deployment is unreachable. Add an application-level bound when your UI needs a
+finite wait:
+
+```ts
+const readiness = viewer.ready();
+const deadline = new Promise<never>((_, reject) => {
+  window.setTimeout(() => reject(new Error("Canvas readiness timed out")), 30_000);
+});
+
+await Promise.race([readiness, deadline]);
 ```
 
 ## TypeScript
