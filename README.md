@@ -351,6 +351,34 @@ viewer.styles.setGlobalAppearance({ strokeColor: "#164863" });
 viewer.diagnostics.on("transport.error", (event) => console.error(event.error));
 ```
 
+### Synchronize Views
+
+Each viewer reports its own pan and zoom changes. After both viewers are ready
+and their documents have emitted `fileReady`, configure them in the same group
+and relay changes through the SDK:
+
+```ts
+const groupId = "review-42";
+const leftId = left.getInfo().sdkInstanceId;
+const rightId = right.getInfo().sdkInstanceId;
+
+await Promise.all([
+  left.viewSync.configure({ groupId, instanceId: leftId, mode: "panAndZoom" }),
+  right.viewSync.configure({ groupId, instanceId: rightId, mode: "panAndZoom" })
+]);
+
+const stopLeft = left.viewSync.on("changed", (change) => right.viewSync.apply(change));
+const stopRight = right.viewSync.on("changed", (change) => left.viewSync.apply(change));
+
+// On cleanup: stopLeft(); stopRight(); left.destroy(); right.destroy();
+```
+
+`apply()` sends a command and returns immediately. Subscribe to `applied` and
+`failed` for Canvas results. For cross-origin Canvas deployments, include the
+host origin in the Canvas URL's `parentOrigin` query parameter as required by
+your Canvas deployment. Use `mode: "zoom"` when drawings have different page
+geometry; raw pan coordinates may not identify the same location.
+
 ### Tool Control
 
 ```ts

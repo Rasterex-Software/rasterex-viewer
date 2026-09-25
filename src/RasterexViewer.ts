@@ -32,14 +32,11 @@ import { CollaborationApi } from "./domains/collaboration/CollaborationApi.js";
 import { StylesApi } from "./domains/styles/StylesApi.js";
 import { LayersApi } from "./domains/layers/LayersApi.js";
 import { BlocksApi } from "./domains/blocks/BlocksApi.js";
+import { ViewSyncApi } from "./domains/view-sync/ViewSyncApi.js";
 import { evaluateCompatibility } from "./utils/compatibility.js";
 import { createSdkInstanceId } from "./utils/createSdkInstanceId.js";
 import { deriveOrigin } from "./utils/deriveOrigin.js";
-import type {
-  RasterexViewerInfo,
-  RasterexViewerOptions,
-  ViewerState
-} from "./types/index.js";
+import type { RasterexViewerInfo, RasterexViewerOptions, ViewerState } from "./types/index.js";
 
 export class RasterexViewer {
   private readonly container: HTMLElement | string;
@@ -64,6 +61,7 @@ export class RasterexViewer {
   readonly styles: StylesApi;
   readonly layers: LayersApi;
   readonly blocks: BlocksApi;
+  readonly viewSync: ViewSyncApi;
   private state: ViewerState = "idle";
   private iframe: HTMLIFrameElement | null = null;
   private mountPromise: Promise<void> | null = null;
@@ -77,7 +75,6 @@ export class RasterexViewer {
   private capabilities: readonly Capability[] | null = null;
   private minimumSdkVersion: string | null = null;
   private compatibility: RasterexViewerInfo["compatibility"] = null;
-
   constructor(options: RasterexViewerOptions) {
     this.container = options.container;
     this.viewerUrl = options.viewerUrl ?? DEFAULT_VIEWER_URL;
@@ -138,8 +135,12 @@ export class RasterexViewer {
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
     });
+    this.viewSync = new ViewSyncApi({
+      getBroker: () => this.getCanvasBroker(),
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
+    });
   }
-
   mount(): Promise<void> {
     if (this.iframe && this.iframe.isConnected) {
       return this.mountPromise ?? Promise.resolve();
@@ -188,6 +189,7 @@ export class RasterexViewer {
         this.collaboration.connect();
         this.layers.connect();
         this.blocks.connect();
+        this.viewSync.connect();
         this.emitMountResolved();
         resolve();
       };
@@ -203,7 +205,6 @@ export class RasterexViewer {
     });
     return this.mountPromise;
   }
-
   ready(): Promise<void> {
     if (this.state === "ready") return Promise.resolve();
     if (!this.iframe?.isConnected || !this.messagingSession) {
@@ -261,7 +262,6 @@ export class RasterexViewer {
     });
     return this.readyPromise;
   }
-
   destroy(): void {
     if (!this.iframe) {
       this.state = "destroyed";
@@ -291,6 +291,7 @@ export class RasterexViewer {
     this.collaboration.disconnect();
     this.layers.disconnect();
     this.blocks.disconnect();
+    this.viewSync.disconnect();
     this.messagingSession?.destroy();
     this.messagingSession = null;
     this.state = "destroyed";

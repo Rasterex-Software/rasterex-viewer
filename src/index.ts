@@ -18,6 +18,7 @@ export { CollaborationApi } from "./domains/collaboration/CollaborationApi.js";
 export { StylesApi } from "./domains/styles/StylesApi.js";
 export { LayersApi } from "./domains/layers/LayersApi.js";
 export { BlocksApi } from "./domains/blocks/BlocksApi.js";
+export { ViewSyncApi } from "./domains/view-sync/ViewSyncApi.js";
 export {
   ToolsApi,
   ToolsNavigationApi,
@@ -210,6 +211,20 @@ export type {
   GetBlocksOptions,
   SetBlockVisibilityOptions
 } from "./domains/blocks/BlocksApi.js";
+export type {
+  ViewSyncApiOptions,
+  ViewSyncApplied,
+  ViewSyncApplyOptions,
+  ViewSyncChange,
+  ViewSyncConfiguration,
+  ViewSyncConfigured,
+  ViewSyncEventHandler,
+  ViewSyncEventMap,
+  ViewSyncEventName,
+  ViewSyncEventUnsubscribe,
+  ViewSyncFailed,
+  ViewSyncMode
+} from "./domains/view-sync/ViewSyncApi.js";
 export type {
   AddMeasurementScaleOptions,
   CalibrationApplyOptions,
