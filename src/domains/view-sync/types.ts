@@ -7,6 +7,7 @@ export interface ViewSyncConfiguration {
   groupId: string;
   instanceId: string;
   mode: ViewSyncMode;
+  enabled?: boolean;
   timeoutMs?: number;
 }
 
@@ -18,7 +19,29 @@ export interface ViewSyncConfigured {
   mode?: ViewSyncMode;
   requestId: string;
   reason?: string;
+  error?: string;
 }
+
+export interface ViewSyncSnapshot {
+  success: true;
+  groupId: string;
+  sourceInstanceId: string;
+  zoomScale: number;
+  offset: { x: number; y: number };
+  page: number;
+  requestId: string;
+}
+
+export interface ViewSyncSnapshotRequest {
+  groupId: string;
+  timeoutMs?: number;
+}
+
+export interface ViewSyncSnapshotApplyOptions {
+  timeoutMs?: number;
+}
+
+export interface ViewSyncSnapshotApplied extends ViewSyncSnapshot {}
 
 export interface ViewSyncChange {
   groupId: string;
@@ -28,7 +51,7 @@ export interface ViewSyncChange {
   fileId?: string | number;
   fileIndex?: number;
   state: {
-    pan?: { sx: number; sy: number; pagerect?: unknown };
+    pan?: { sx: number; sy: number; pagerect?: unknown; coordinateMode?: "delta" | "absolute" };
     zoom?: { zoomparams: Record<string, unknown>; type: number };
   };
 }

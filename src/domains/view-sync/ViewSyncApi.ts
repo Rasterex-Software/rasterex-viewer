@@ -3,10 +3,13 @@ import type { CanvasMessageBroker, CanvasMessageUnsubscribe } from "../../messag
 import { createRequestId } from "../../utils/createRequestId.js";
 import { DomainEventEmitter } from "../../utils/DomainEventEmitter.js";
 import { createCanvasCommandError, requireReadyBroker } from "../canvas/canvasBrokerCommands.js";
+import { createSnapshotOperation, isSnapshot, type SnapshotOperation } from "./snapshot.js";
 import type {
   ViewSyncApiOptions, ViewSyncApplied, ViewSyncApplyOptions, ViewSyncChange,
   ViewSyncConfiguration, ViewSyncConfigured, ViewSyncEventHandler, ViewSyncEventMap,
-  ViewSyncEventName, ViewSyncEventUnsubscribe, ViewSyncFailed, ViewSyncMode
+  ViewSyncEventName, ViewSyncEventUnsubscribe, ViewSyncFailed, ViewSyncMode,
+  ViewSyncSnapshot, ViewSyncSnapshotApplied, ViewSyncSnapshotRequest,
+  ViewSyncSnapshotApplyOptions
 } from "./types.js";
 export type * from "./types.js";
 
@@ -18,7 +21,9 @@ export class ViewSyncApi {
   private broker: CanvasMessageBroker | null = null;
   private brokerCleanups: CanvasMessageUnsubscribe[] = [];
   private pendingConfig: { cancel: () => void } | null = null;
+  private readonly pendingSnapshots = new Set<SnapshotOperation<ViewSyncSnapshot>>();
   private configuredIdentity: { groupId: string; instanceId: string } | null = null;
+  private configuredEnabled = false;
 
   constructor(options: ViewSyncApiOptions) {
     this.options = options;
@@ -39,7 +44,8 @@ export class ViewSyncApi {
     this.broker = broker;
     this.brokerCleanups = [
       broker.on<ViewSyncChange>("viewSyncChanged", ({ payload }) => {
-        if (isChange(payload) && this.configuredIdentity?.groupId === payload.groupId &&
+        if (this.configuredEnabled && isChange(payload) &&
+            this.configuredIdentity?.groupId === payload.groupId &&
             this.configuredIdentity.instanceId === payload.sourceInstanceId) {
           this.events.emit("changed", payload);
         }
@@ -56,15 +62,19 @@ export class ViewSyncApi {
   disconnect(): void {
     this.pendingConfig?.cancel();
     this.pendingConfig = null;
+    for (const operation of this.pendingSnapshots) operation.cancel();
+    this.pendingSnapshots.clear();
     for (const cleanup of this.brokerCleanups) cleanup();
     this.brokerCleanups = [];
     this.broker = null;
     this.configuredIdentity = null;
+    this.configuredEnabled = false;
   }
 
   configure(options: ViewSyncConfiguration): Promise<ViewSyncConfigured> {
     if (!options || !hasText(options.groupId) || !hasText(options.instanceId) ||
-        !MODES.includes(options.mode)) {
+        !MODES.includes(options.mode) ||
+        (options.enabled !== undefined && typeof options.enabled !== "boolean")) {
       return Promise.reject(createCanvasCommandError(
         "configureViewSync", "View sync requires groupId, instanceId, and a valid mode."
       ));
@@ -84,6 +94,8 @@ export class ViewSyncApi {
       ));
     }
     this.configuredIdentity = null;
+    this.configuredEnabled = false;
+    const enabled = options.enabled ?? options.mode !== "off";
     const requestId = createRequestId();
     return new Promise<ViewSyncConfigured>((resolve, reject) => {
       let settled = false;
@@ -93,13 +105,16 @@ export class ViewSyncApi {
         finish();
         if (payload.success !== true) {
           reject(createCanvasCommandError(
-            "configureViewSync", payload.reason ?? "Canvas rejected view sync configuration.",
+            "configureViewSync", payload.error ?? payload.reason ?? "Canvas rejected view sync configuration.",
             { requestId, result: payload }
           ));
+        } else if (payload.enabled !== enabled || payload.groupId !== options.groupId ||
+            payload.instanceId !== options.instanceId || payload.mode !== options.mode) {
+          reject(createCanvasCommandError("configureViewSync",
+            "Canvas returned a mismatched view sync configuration.", { requestId, result: payload }));
         } else {
-          this.configuredIdentity = options.mode === "off"
-            ? null
-            : { groupId: options.groupId, instanceId: options.instanceId };
+          this.configuredIdentity = { groupId: options.groupId, instanceId: options.instanceId };
+          this.configuredEnabled = enabled && options.mode !== "off";
           resolve(payload);
         }
       });
@@ -122,7 +137,7 @@ export class ViewSyncApi {
       };
       try {
         broker.send("configureViewSync", {
-          enabled: options.mode !== "off",
+          enabled,
           groupId: options.groupId,
           instanceId: options.instanceId,
           mode: options.mode,
@@ -133,6 +148,51 @@ export class ViewSyncApi {
         reject(error);
       }
     });
+  }
+
+  getSnapshot(options: ViewSyncSnapshotRequest): Promise<ViewSyncSnapshot> {
+    if (!options || !hasText(options.groupId)) {
+      return Promise.reject(createCanvasCommandError("getViewSyncSnapshot", "groupId is required."));
+    }
+    if (this.configuredIdentity?.groupId !== options.groupId) {
+      return Promise.reject(createCanvasCommandError("getViewSyncSnapshot",
+        "Configure this viewer in the requested group before taking a snapshot."));
+    }
+    return this.runSnapshot("getViewSyncSnapshot", "viewSyncSnapshot",
+      { groupId: options.groupId }, options.timeoutMs,
+      this.configuredIdentity.instanceId);
+  }
+
+  applySnapshot(
+    snapshot: ViewSyncSnapshot,
+    options: ViewSyncSnapshotApplyOptions = {}
+  ): Promise<ViewSyncSnapshotApplied> {
+    if (!isSnapshot(snapshot)) {
+      return Promise.reject(createCanvasCommandError("applyViewSyncSnapshot",
+        "A valid successful snapshot is required."));
+    }
+    return this.runSnapshot("applyViewSyncSnapshot", "viewSyncSnapshotApplied",
+      { ...snapshot }, options.timeoutMs, snapshot.sourceInstanceId);
+  }
+
+  private runSnapshot(
+    command: "getViewSyncSnapshot" | "applyViewSyncSnapshot",
+    resultType: "viewSyncSnapshot" | "viewSyncSnapshotApplied",
+    payload: { groupId: string; requestId?: string; [key: string]: unknown },
+    timeoutOverride?: number,
+    sourceId?: string
+  ): Promise<ViewSyncSnapshot> {
+    const timeoutMs = timeoutOverride ?? this.options.commandTimeoutMs;
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+      return Promise.reject(createCanvasCommandError(command, "timeoutMs must be positive and finite."));
+    }
+    const broker = requireReadyBroker({ ...this.options, type: command, apiName: "viewer.viewSync" });
+    const operation = createSnapshotOperation<ViewSyncSnapshot>(
+      broker, command, resultType, payload, timeoutMs, sourceId
+    );
+    this.pendingSnapshots.add(operation);
+    void operation.promise.finally(() => this.pendingSnapshots.delete(operation)).catch(() => {});
+    return operation.promise;
   }
 
   apply(change: ViewSyncChange, options: ViewSyncApplyOptions = {}): void {
@@ -170,7 +230,9 @@ function isChange(value: unknown): value is ViewSyncChange {
       !Number.isFinite(value.fileId)) return false;
   const { pan, zoom } = value.state;
   if (!pan && !zoom) return false;
-  if (pan && (!isRecord(pan) || !Number.isFinite(pan.sx) || !Number.isFinite(pan.sy))) return false;
+  if (pan && (!isRecord(pan) || !Number.isFinite(pan.sx) || !Number.isFinite(pan.sy) ||
+      (pan.coordinateMode !== undefined && pan.coordinateMode !== "delta" &&
+       pan.coordinateMode !== "absolute"))) return false;
   if (zoom && (!isRecord(zoom) || !isRecord(zoom.zoomparams) ||
       !Number.isFinite(zoom.type))) return false;
   return true;

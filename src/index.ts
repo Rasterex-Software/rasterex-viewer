@@ -223,7 +223,11 @@ export type {
   ViewSyncEventName,
   ViewSyncEventUnsubscribe,
   ViewSyncFailed,
-  ViewSyncMode
+  ViewSyncMode,
+  ViewSyncSnapshot,
+  ViewSyncSnapshotApplied,
+  ViewSyncSnapshotApplyOptions,
+  ViewSyncSnapshotRequest
 } from "./domains/view-sync/ViewSyncApi.js";
 export type {
   AddMeasurementScaleOptions,

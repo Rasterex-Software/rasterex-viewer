@@ -2,14 +2,14 @@
 
 Use `@rasterex/viewer` to keep pan and zoom aligned across two Canvas viewers. Each viewer is a separate SDK instance. Your React host chooses the sync group and relays changes from one instance to the other.
 
-This guide uses the `viewer.viewSync` API introduced in SDK `2.1.5`. That version is currently in this workspace and has not been published by this work. Your Canvas deployment must support the view sync broker messages documented in [Canvas View Synchronization: React Host Integration](../../docs-canvas-to-implement/VIEW_SYNC_REACT_HOST_INTEGRATION.md). The Canvas document does not identify a minimum Canvas version. Confirm support in your deployment before using this in production.
+This guide uses the `viewer.viewSync` API in SDK `2.1.6`. Your Canvas deployment must support the view sync broker messages documented in [Canvas View Synchronization: React Host Integration](../../docs-canvas-to-implement/VIEW_SYNC_REACT_HOST_INTEGRATION.md). The Canvas document does not identify a minimum Canvas version. Confirm support in your deployment before using this in production.
 
 ## Install and prepare Canvas
 
-After `2.1.5` is published:
+Install the SDK from npm:
 
 ```sh
-npm install @rasterex/viewer@2.1.5
+npm install @rasterex/viewer@2.1.6
 ```
 
 To try the feature from this workspace before publication, run these in the SDK repository and install the resulting tarball in your React application:
@@ -20,20 +20,20 @@ npm pack
 ```
 
 ```sh
-npm install /absolute/path/to/rasterex-viewer/rasterex-viewer-2.1.5.tgz
+npm install /absolute/path/to/rasterex-viewer/rasterex-viewer-2.1.6.tgz
 ```
 
 You need:
 
-- A Canvas URL that can be embedded by your React application and supports `configureViewSync`, `viewSyncChanged`, and `applyViewSync`.
+- A Canvas URL that can be embedded by your React application and supports `configureViewSync`, `getViewSyncSnapshot`, `applyViewSyncSnapshot`, `viewSyncChanged`, and `applyViewSync`.
 - A document URL reachable by the Canvas deployment.
 - A container with a real height for each viewer.
 
-For a cross-origin host, Canvas expects the host origin in the `parentOrigin` URL parameter. The example below adds that parameter and `embed=true` to the Canvas URL you provide. The SDK derives its trusted message origin from the resulting `viewerUrl`, and its broker checks both the message origin and the sending iframe.
+For a cross-origin host, Canvas expects the host origin in the `parentOrigin` URL parameter and derives its trusted parent origin from the referrer. The example below adds that parameter, `embed=true`, and `referrerPolicy="origin"`. The SDK derives its trusted message origin from the resulting `viewerUrl`, and its broker checks both the message origin and the sending iframe.
 
 ## Complete React example
 
-Set `canvasBaseUrl` to your view sync enabled Canvas deployment. This first example opens the same public PDF in both viewers so their page geometry matches. Replace the document URLs and display names with files reachable by your Canvas deployment.
+Set `canvasBaseUrl` to your view sync enabled Canvas deployment. This example opens the same PDF in both viewers so their page geometry matches. Replace the document URLs and display names with files reachable by your Canvas deployment.
 
 ```tsx
 import { useEffect, useRef, useState } from "react";
@@ -82,8 +82,9 @@ export function SynchronizedViewers({
     canvasUrl.searchParams.set("embed", "true");
     canvasUrl.searchParams.set("parentOrigin", window.location.origin);
 
-    const left = createViewer({ container: leftContainer.current, viewerUrl: canvasUrl.href });
-    const right = createViewer({ container: rightContainer.current, viewerUrl: canvasUrl.href });
+    const viewerOptions = { viewerUrl: canvasUrl.href, iframeAttributes: { referrerPolicy: "origin" } };
+    const left = createViewer({ ...viewerOptions, container: leftContainer.current });
+    const right = createViewer({ ...viewerOptions, container: rightContainer.current });
     const groupId = "review-pair";
     const leftId = left.getInfo().sdkInstanceId;
     const rightId = right.getInfo().sdkInstanceId;
@@ -96,10 +97,12 @@ export function SynchronizedViewers({
       if (disposed || !relayEnabled || change.groupId !== groupId ||
           change.sourceInstanceId !== leftId || change.sequence <= lastLeftSequence) return;
       lastLeftSequence = change.sequence;
+      const pan = mode !== "zoom" && mode !== "off" && change.state.pan !== undefined;
+      const zoom = mode !== "pan" && mode !== "off" && change.state.zoom !== undefined;
+      if (!pan && !zoom) return;
       try {
         right.viewSync.apply(change, {
-          pan: mode !== "zoom" && change.state.pan !== undefined,
-          zoom: mode !== "pan" && change.state.zoom !== undefined
+          pan, zoom
         });
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Could not relay the left view");
@@ -109,10 +112,12 @@ export function SynchronizedViewers({
       if (disposed || !relayEnabled || change.groupId !== groupId ||
           change.sourceInstanceId !== rightId || change.sequence <= lastRightSequence) return;
       lastRightSequence = change.sequence;
+      const pan = mode !== "zoom" && mode !== "off" && change.state.pan !== undefined;
+      const zoom = mode !== "pan" && mode !== "off" && change.state.zoom !== undefined;
+      if (!pan && !zoom) return;
       try {
         left.viewSync.apply(change, {
-          pan: mode !== "zoom" && change.state.pan !== undefined,
-          zoom: mode !== "pan" && change.state.zoom !== undefined
+          pan, zoom
         });
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : "Could not relay the right view");
@@ -132,6 +137,12 @@ export function SynchronizedViewers({
         await within(Promise.all([left.ready(), right.ready()]), 30_000);
         if (disposed) return;
 
+        await Promise.all([
+          left.viewSync.configure({ groupId, instanceId: leftId, mode, enabled: false }),
+          right.viewSync.configure({ groupId, instanceId: rightId, mode, enabled: false })
+        ]);
+        if (disposed) return;
+
         setStatus("Opening documents");
         await Promise.all([
           left.documents.open({ url: leftDocumentUrl, displayName: leftDisplayName }),
@@ -139,9 +150,17 @@ export function SynchronizedViewers({
         ]);
         if (disposed) return;
 
+        if (mode !== "off") {
+          setStatus("Aligning views");
+          const snapshot = await left.viewSync.getSnapshot({ groupId });
+          if (disposed) return;
+          await right.viewSync.applySnapshot(snapshot);
+          if (disposed) return;
+        }
+
         await Promise.all([
-          left.viewSync.configure({ groupId, instanceId: leftId, mode }),
-          right.viewSync.configure({ groupId, instanceId: rightId, mode })
+          left.viewSync.configure({ groupId, instanceId: leftId, mode, enabled: mode !== "off" }),
+          right.viewSync.configure({ groupId, instanceId: rightId, mode, enabled: mode !== "off" })
         ]);
         if (disposed) return;
 
@@ -149,10 +168,18 @@ export function SynchronizedViewers({
         setStatus(relayEnabled ? "Views synchronized" : "Synchronization off");
       } catch (cause) {
         if (disposed) return;
+        relayEnabled = false;
+        await Promise.allSettled([
+          Promise.resolve().then(() => left.viewSync.configure({
+            groupId, instanceId: leftId, mode, enabled: false
+          })),
+          Promise.resolve().then(() => right.viewSync.configure({
+            groupId, instanceId: rightId, mode, enabled: false
+          }))
+        ]);
+        if (disposed) return;
         setError(cause instanceof Error ? cause.message : "Viewer startup failed");
-        setStatus("Unable to start synchronization");
-        left.destroy();
-        right.destroy();
+        setStatus("Synchronization stopped");
       }
     }
 
@@ -185,16 +212,16 @@ export default function App() {
   return (
     <SynchronizedViewers
       canvasBaseUrl="https://canvas.example.com/"
-      leftDocumentUrl="https://res.cloudinary.com/dvgeew3bj/image/upload/v1779169700/Main_version_1.pdf_1_ifrgjq.pdf"
+      leftDocumentUrl="https://files.example.com/plan.pdf"
       leftDisplayName="sample.pdf"
-      rightDocumentUrl="https://res.cloudinary.com/dvgeew3bj/image/upload/v1779169700/Main_version_1.pdf_1_ifrgjq.pdf"
+      rightDocumentUrl="https://files.example.com/plan.pdf"
       rightDisplayName="sample.pdf"
     />
   );
 }
 ```
 
-Replace `https://canvas.example.com/` with your deployment URL. `documents.open()` resolves after Canvas emits `fileReady`, so the example configures synchronization only after both documents are active. The `within()` helper gives the host a finite startup wait because `connectTimeoutMs` and `readyTimeoutMs` are advisory and do not reject `mount()` or `ready()` by themselves.
+Replace both example origins with URLs your deployment can access. `documents.open()` resolves after Canvas emits `fileReady`. The example configures both viewers with live sync disabled, opens both documents, aligns the right viewer to the left snapshot, and enables live sync only after Canvas confirms alignment. For `off`, it opens the documents and skips alignment. The `within()` helper gives the host a finite startup wait because `connectTimeoutMs` and `readyTimeoutMs` are advisory and do not reject `mount()` or `ready()` by themselves.
 
 The host checks `groupId`, `sourceInstanceId`, and increasing `sequence` before forwarding a change. The SDK also checks incoming messages against the configured Canvas origin, iframe source, group, and instance. Each event is sent only to the sibling viewer. Canvas is expected to avoid emitting a new local change from a remotely applied update; confirm that behavior with your deployment.
 
@@ -203,17 +230,17 @@ The host checks `groupId`, `sourceInstanceId`, and increasing `sequence` before 
 | Mode | Use |
 | --- | --- |
 | `panAndZoom` | Identical documents or drawings with matching geometry. |
-| `zoom` | Related drawings with different sizes or origins. |
+| `zoom` | Relay only zoom operations after successful snapshot alignment. |
 | `pan` | Keep pan aligned without matching zoom. |
 | `off` | Disable local view sync events. |
 
-For two revisions, pass different `leftDocumentUrl` and `rightDocumentUrl` values and start with `mode="zoom"`. Give each document its real file name and extension. Raw pan coordinates are not guaranteed to represent the same physical location in two different drawings.
+For two revisions, pass different `leftDocumentUrl` and `rightDocumentUrl` values only when their pages and viewer coordinates are compatible enough for snapshot alignment. `mode="zoom"` limits subsequent relays to zoom, but the initial snapshot still checks page, zoom, and position. If the documents cannot align by raw page offset, this example stops before enabling live sync. Raw pan coordinates do not represent the same physical location in unrelated drawings.
 
-When a viewer changes documents, stop forwarding changes immediately, reset its last sequence to `-1`, wait for the new `documents.open()` call to resolve, then configure synchronization again. The example remounts both viewers when its document props change, which resets this state automatically.
+When a viewer changes documents, stop forwarding changes immediately, disable synchronization, reset its last sequence to `-1`, wait for the new `documents.open()` call to resolve, then align and enable synchronization again. The example remounts both viewers when its document props change, which resets this state automatically.
 
 ## Results and troubleshooting
 
-`configure()` waits for `viewSyncConfigured` with the generated request ID. It rejects when Canvas returns `success: false` or when no matching result arrives before `commandTimeoutMs` (30 seconds by default). The Canvas reference shows request ID echoing in an example, but does not explicitly guarantee it; confirm this with your deployment. A timeout may mean the view sync command is unsupported or that the response did not include the request ID.
+`configure()`, `getSnapshot()`, and `applySnapshot()` wait for matching request IDs and reject on Canvas failure, invalid results, or timeout. Snapshot alignment requires matching pages and compatible geometry and viewer coordinates. If alignment fails, the example leaves live sync disabled and displays the error. The Canvas reference shows request ID echoing in its responses; confirm that behavior with your deployment.
 
 `apply()` returns immediately after sending `applyViewSync`. Listen to `viewer.viewSync.on("applied", ...)` or `on("failed", ...)` for Canvas outcomes. Those results may omit `requestId`, so do not treat `apply()` as a promise for remote completion. Canvas ignores stale sequences without reporting them as errors.
 

@@ -31,7 +31,7 @@ test("configure correlates its acknowledgement and binds changed events to this 
   assert.equal(request.payload.enabled, true);
   assert.equal(typeof request.payload.requestId, "string");
   emit("viewSyncConfigured", { success: true, requestId: "another-request" });
-  emit("viewSyncConfigured", { success: true, requestId: request.payload.requestId });
+  emit("viewSyncConfigured", { success: true, ...request.payload });
   await pending;
 
   const change = { groupId: "review", sourceInstanceId: "left", sequence: 1,
@@ -68,8 +68,89 @@ test("Canvas configuration failure rejects and a later configuration can proceed
   });
   await assert.rejects(first, { code: "UNKNOWN_COMMAND" });
   const second = api.configure({ groupId: "review", instanceId: "left", mode: "zoom" });
-  emit("viewSyncConfigured", { success: true, requestId: sent[1].payload.requestId });
+  emit("viewSyncConfigured", { success: true, ...sent[1].payload });
   await second;
+});
+
+test("disabled configuration retains snapshot identity without emitting changes", async () => {
+  const { api, sent, emit } = brokerHarness();
+  const changes = [];
+  api.on("changed", (change) => changes.push(change));
+  const pending = api.configure({ groupId: "review", instanceId: "left",
+    mode: "panAndZoom", enabled: false });
+  assert.equal(sent[0].payload.enabled, false);
+  emit("viewSyncConfigured", { success: true, ...sent[0].payload });
+  await pending;
+  emit("viewSyncChanged", { groupId: "review", sourceInstanceId: "left", sequence: 1,
+    state: { pan: { sx: 1, sy: 2, coordinateMode: "delta" } } });
+  assert.deepEqual(changes, []);
+});
+
+test("snapshot commands correlate results and forward a successful snapshot unchanged", async () => {
+  const { api, sent, emit } = brokerHarness();
+  api.connect();
+  const config = api.configure({ groupId: "review", instanceId: "left",
+    mode: "panAndZoom", enabled: false });
+  emit("viewSyncConfigured", { success: true, ...sent[0].payload });
+  await config;
+  const getting = api.getSnapshot({ groupId: "review" });
+  const requestId = sent[1].payload.requestId;
+  const snapshot = { success: true, groupId: "review", sourceInstanceId: "left",
+    zoomScale: 0.72, offset: { x: 120, y: -45 }, page: 1, requestId };
+  emit("viewSyncSnapshot", { ...snapshot, requestId: "wrong" });
+  emit("viewSyncSnapshot", snapshot);
+  assert.deepEqual(await getting, snapshot);
+  const applying = api.applySnapshot(snapshot);
+  assert.deepEqual(sent[2], { type: "applyViewSyncSnapshot", payload: snapshot });
+  emit("viewSyncSnapshotApplied", { ...snapshot, offset: { x: Infinity, y: 0 } });
+  await assert.rejects(applying, { code: "UNKNOWN_COMMAND" });
+});
+
+test("disconnect cancels a pending snapshot", async () => {
+  const { api, sent, emit } = brokerHarness();
+  const config = api.configure({ groupId: "review", instanceId: "left", mode: "zoom", enabled: false });
+  emit("viewSyncConfigured", { success: true, ...sent[0].payload });
+  await config;
+  const pending = api.getSnapshot({ groupId: "review" });
+  api.disconnect();
+  await assert.rejects(pending, { code: "VIEWER_NOT_READY" });
+});
+
+test("snapshot application resolves only after a matching successful result", async () => {
+  const { api, emit } = brokerHarness();
+  const snapshot = { success: true, groupId: "review", sourceInstanceId: "left",
+    zoomScale: 0.72, offset: { x: 120, y: -45 }, page: 1, requestId: "align-1" };
+  const pending = api.applySnapshot(snapshot);
+  emit("viewSyncSnapshotApplied", { ...snapshot, requestId: "other" });
+  emit("viewSyncSnapshotApplied", snapshot);
+  assert.deepEqual(await pending, snapshot);
+});
+
+test("snapshot results accept Canvas zero-based page indexes", async () => {
+  const { api, emit } = brokerHarness();
+  const snapshot = { success: true, groupId: "review", sourceInstanceId: "left",
+    zoomScale: 0.72, offset: { x: 120, y: -45 }, page: 0, requestId: "page-zero" };
+  const pending = api.applySnapshot(snapshot);
+  emit("viewSyncSnapshotApplied", snapshot);
+  assert.deepEqual(await pending, snapshot);
+});
+
+test("configuration rejects a mismatched acknowledgement", async () => {
+  const { api, sent, emit } = brokerHarness();
+  const pending = api.configure({ groupId: "review", instanceId: "left",
+    mode: "panAndZoom", enabled: false });
+  emit("viewSyncConfigured", { success: true, ...sent[0].payload, enabled: true });
+  await assert.rejects(pending, { code: "UNKNOWN_COMMAND" });
+});
+
+test("delta pan is preserved and unknown coordinate modes are rejected", () => {
+  const { api, sent } = brokerHarness();
+  const change = { groupId: "review", sourceInstanceId: "left", sequence: 1,
+    state: { pan: { sx: 1, sy: 2, coordinateMode: "delta" } } };
+  api.apply(change);
+  assert.equal(sent[0].payload.state.pan.coordinateMode, "delta");
+  assert.throws(() => api.apply({ ...change,
+    state: { pan: { ...change.state.pan, coordinateMode: "unknown" } } }));
 });
 
 test("apply outcome events are exposed without assuming request IDs", () => {
