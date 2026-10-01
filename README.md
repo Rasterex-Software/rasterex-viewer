@@ -11,8 +11,14 @@ Canvas Sandbox for evaluation and proof-of-concept testing.
 ## Evaluation
 
 The SDK automatically starts and validates a 30-day evaluation before
-`viewer.ready()` resolves. No license key, company name, or email address is
-required. Evaluation expiry is determined by Rasterex.
+`viewer.ready()` resolves when using Rasterex's hosted Sandbox. No license key,
+company name, or email address is required. Evaluation expiry is determined by
+Rasterex.
+
+When `viewerUrl` points to a client-owned or self-hosted Canvas, the SDK skips
+Rasterex's hosted evaluation API. Self-hosted and air-gapped deployments do not
+need network access to Rasterex's evaluation service; licensing and entitlement
+for those deployments remain the responsibility of the Canvas deployment.
 
 If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
 `INVALID_TOKEN`, `EVALUATION_ACTIVATION_FAILED`,
@@ -49,7 +55,9 @@ Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs
 
 The SDK defaults to `https://sandbox.rasterex.com`, Rasterex's hosted Canvas
 environment for evaluation and proof-of-concept testing. The SDK embeds it in
-an iframe and sends Canvas broker messages to that origin.
+an iframe and sends Canvas broker messages to that origin. The hosted
+evaluation flow is selected when the configured viewer URL has the Sandbox
+origin, including Sandbox URLs with a path or query string.
 
 Documents opened in Sandbox must be reachable from the hosted viewer
 environment. The public PDF and DWG used in the examples are intentionally
@@ -281,7 +289,7 @@ interface RasterexViewerOptions {
 | `viewerUrl` | Viewer URL to load. Defaults to `https://sandbox.rasterex.com`. |
 | `targetOrigin` | Trusted origin for viewer messages. Defaults to the origin of `viewerUrl`. |
 | `connectTimeoutMs` | Advisory duration after which the SDK emits a slow iframe diagnostic; it does not reject `mount()`. |
-| `readyTimeoutMs` | Advisory duration after which the SDK emits a slow readiness diagnostic; it does not reject `ready()`. |
+| `readyTimeoutMs` | Maximum duration for the complete `ready()` lifecycle. Defaults to 60 seconds and rejects with `CANVAS_READY_TIMEOUT`. |
 | `commandTimeoutMs` | Timeout for commands that wait for a viewer response. |
 | `debug` | Writes SDK diagnostics to `console.debug`. |
 | `iframeTitle` | Accessible iframe title. |
@@ -403,18 +411,23 @@ unsubscribe();
 
 ### Readiness Bounds
 
-`connectTimeoutMs` and `readyTimeoutMs` are advisory diagnostics. They do not
-reject `mount()` or `ready()`, so `ready()` can remain pending when the Canvas
-deployment is unreachable. Add an application-level bound when your UI needs a
-finite wait:
+`connectTimeoutMs` remains an advisory diagnostic for iframe loading.
+`readyTimeoutMs` is a rejecting bound for the complete `ready()` lifecycle,
+including hosted Sandbox evaluation. The timeout error includes the configured
+viewer URL and timeout duration:
 
 ```ts
-const readiness = viewer.ready();
-const deadline = new Promise<never>((_, reject) => {
-  window.setTimeout(() => reject(new Error("Canvas readiness timed out")), 30_000);
-});
+await viewer.ready();
+```
 
-await Promise.race([readiness, deadline]);
+Use an `AbortSignal` when the host application needs to cancel readiness:
+
+```ts
+const controller = new AbortController();
+const readiness = viewer.ready({ signal: controller.signal });
+
+controller.abort();
+await readiness; // rejects with VIEWER_NOT_READY
 ```
 
 ## TypeScript

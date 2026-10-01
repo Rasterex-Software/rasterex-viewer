@@ -334,5 +334,6 @@ export type {
   EvaluationRegistrationOptions,
   RasterexViewerInfo,
   RasterexViewerOptions,
+  ViewerReadyOptions,
   ViewerState
 } from "./types/index.js";

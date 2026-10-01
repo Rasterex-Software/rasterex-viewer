@@ -177,6 +177,15 @@ test("evaluation activation and validation lifecycle", async (t) => {
   });
 });
 
+test("hosted Sandbox detection controls the evaluation boundary", async () => {
+  const { isSandboxViewerUrl } = await import("../dist/utils/isSandboxViewerUrl.js");
+
+  assert.equal(isSandboxViewerUrl("https://sandbox.rasterex.com"), true);
+  assert.equal(isSandboxViewerUrl("https://sandbox.rasterex.com/canvas?embed=true"), true);
+  assert.equal(isSandboxViewerUrl("https://viewer.example.com/rasterex"), false);
+  assert.equal(isSandboxViewerUrl("http://sandbox.rasterex.com"), false);
+});
+
 test.after(() => {
   globalThis.window = originalWindow;
   globalThis.fetch = originalFetch;

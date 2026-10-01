@@ -25,6 +25,10 @@ export interface EvaluationRegistrationOptions {
   email?: string;
 }
 
+export interface ViewerReadyOptions {
+  signal?: AbortSignal;
+}
+
 export type ViewerState =
   | "idle"
   | "mounting"
