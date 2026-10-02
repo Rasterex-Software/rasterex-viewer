@@ -68,4 +68,5 @@ export type CompareEventUnsubscribe = DomainEventUnsubscribe;
 export interface CompareApiOptions {
   getBroker: () => CanvasMessageBroker | null;
   getIsReady: () => boolean;
+  commandTimeoutMs: number;
 }

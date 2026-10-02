@@ -319,7 +319,7 @@ viewer.measurements.scale.add({
   }
 });
 
-viewer.compare.compare({
+const comparison = await viewer.compare.compare({
   backgroundUrl: "https://files.example.com/revision-a.dwg",
   overlayUrl: "https://files.example.com/revision-b.dwg"
 });
@@ -354,7 +354,10 @@ if (firstBlock?.index !== undefined) {
   viewer.blocks.setVisibility({ index: firstBlock.index, visible: false });
 }
 
-viewer.compare.compare({ backgroundUrl: "old.pdf", overlayUrl: "new.pdf" });
+const comparison = await viewer.compare.compare({
+  backgroundUrl: "old.pdf",
+  overlayUrl: "new.pdf"
+});
 viewer.styles.setGlobalAppearance({ strokeColor: "#164863" });
 viewer.diagnostics.on("transport.error", (event) => console.error(event.error));
 ```

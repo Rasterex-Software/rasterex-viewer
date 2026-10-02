@@ -106,8 +106,7 @@ export class RasterexViewer {
     this.canvas = new CanvasApi({ getBroker: () => this.getCanvasBroker() });
     this.documents = new DocumentsApi({
       getBroker: () => this.getCanvasBroker(),
-      getIsReady: () => this.state === "ready",
-      commandTimeoutMs: this.commandTimeoutMs
+      getIsReady: () => this.state === "ready", commandTimeoutMs: this.commandTimeoutMs
     });
     this.annotations = new AnnotationsApi({
       getBroker: () => this.getCanvasBroker(),
@@ -126,7 +125,8 @@ export class RasterexViewer {
     });
     this.compare = new CompareApi({
       getBroker: () => this.getCanvasBroker(),
-      getIsReady: () => this.state === "ready"
+      getIsReady: () => this.state === "ready",
+      commandTimeoutMs: this.commandTimeoutMs
     });
     this.collaboration = new CollaborationApi({
       getBroker: () => this.getCanvasBroker(),
