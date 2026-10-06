@@ -31,7 +31,7 @@ export class EvaluationService {
   private controller: AbortController | null = null;
   private destroyed = false;
 
-  constructor(private readonly registration: EvaluationRegistrationOptions) {}
+  constructor(private readonly registration?: EvaluationRegistrationOptions) {}
 
   initialize(): Promise<EvaluationValidation> {
     if (!this.initialization) {
@@ -48,8 +48,8 @@ export class EvaluationService {
   }
 
   private async initializeEvaluation(): Promise<EvaluationValidation> {
-    const token = this.readToken() ?? (await this.createAndStoreToken());
-    return this.validateToken(token);
+    const token = this.readToken();
+    return this.validateToken(token ?? (await this.createAndStoreToken()));
   }
 
   private readToken(): string | null {
@@ -63,25 +63,28 @@ export class EvaluationService {
 
   private async createAndStoreToken(): Promise<string> {
     let response: ActivationResponse;
+    const failureCode = getRegistrationDetails(this.registration)
+      ? ERROR_CODES.evaluationRegistrationFailed
+      : ERROR_CODES.evaluationActivationFailed;
 
     try {
-      response = await this.requestRegistration();
+      response = await this.requestActivation();
     } catch (cause) {
       if (cause instanceof RasterexViewerError) {
         throw cause;
       }
 
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "request", cause);
+      throw this.createFailure(failureCode, "request", cause);
     }
 
     if (!isNonEmptyString(response.token)) {
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "response");
+      throw this.createFailure(failureCode, "response");
     }
 
     try {
       window.localStorage.setItem(VIEWSPACE_EVALUATION_TOKEN_KEY, response.token);
     } catch (cause) {
-      throw this.createFailure(ERROR_CODES.evaluationRegistrationFailed, "storage", cause);
+      throw this.createFailure(failureCode, "storage", cause);
     }
 
     return response.token;
@@ -132,22 +135,12 @@ export class EvaluationService {
     throw this.toValidationFailure(lastError);
   }
 
-  private async requestRegistration(): Promise<ActivationResponse> {
-    if (
-      !this.registration ||
-      !isNonEmptyString(this.registration.company) ||
-      !isNonEmptyString(this.registration.email)
-    ) {
-      throw createEvaluationError(
-        ERROR_CODES.evaluationRegistrationRequired,
-        "Company and email are required to start a Rasterex Viewer evaluation."
-      );
-    }
-
-    const response = await this.request("register", {
-      company: this.registration.company.trim(),
-      email: this.registration.email.trim()
-    });
+  private async requestActivation(): Promise<ActivationResponse> {
+    const registration = getRegistrationDetails(this.registration);
+    const response = await this.request(
+      registration ? "register" : "activate",
+      registration ?? {}
+    );
 
     if (!response.ok) {
       throw new EvaluationHttpError(response.status);
@@ -241,6 +234,7 @@ export class EvaluationService {
 
   private createFailure(
     code:
+      | typeof ERROR_CODES.evaluationActivationFailed
       | typeof ERROR_CODES.evaluationRegistrationFailed
       | typeof ERROR_CODES.evaluationValidationFailed,
     stage: "storage-read" | "storage" | "request" | "response" | "registration",
@@ -248,9 +242,11 @@ export class EvaluationService {
   ): RasterexViewerError {
     return createEvaluationError(
       code,
-      code === ERROR_CODES.evaluationRegistrationFailed
-        ? "Rasterex Viewer evaluation registration failed."
-        : "Rasterex Viewer evaluation validation failed.",
+      code === ERROR_CODES.evaluationActivationFailed
+        ? "Rasterex Viewer evaluation activation failed."
+        : code === ERROR_CODES.evaluationRegistrationFailed
+          ? "Rasterex Viewer evaluation registration failed."
+          : "Rasterex Viewer evaluation validation failed.",
       {
         stage,
         ...(cause instanceof EvaluationHttpError ? { status: cause.status } : {}),
@@ -313,5 +309,18 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isNonEmptyString(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0;
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function getRegistrationDetails(
+  registration?: EvaluationRegistrationOptions
+): Record<string, string> | undefined {
+  if (!isNonEmptyString(registration?.company) || !isNonEmptyString(registration?.email)) {
+    return undefined;
+  }
+
+  return {
+    company: registration.company.trim(),
+    email: registration.email.trim()
+  };
 }

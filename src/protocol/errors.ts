@@ -16,6 +16,7 @@ export const ERROR_CODES = {
   evaluationExpired: "EVALUATION_EXPIRED",
   invalidToken: "INVALID_TOKEN",
   evaluationRegistrationRequired: "EVALUATION_REGISTRATION_REQUIRED",
+  evaluationActivationFailed: "EVALUATION_ACTIVATION_FAILED",
   evaluationRegistrationFailed: "EVALUATION_REGISTRATION_FAILED",
   evaluationValidationFailed: "EVALUATION_VALIDATION_FAILED",
   unknownCommand: "UNKNOWN_COMMAND"
@@ -46,6 +47,7 @@ export const ERROR_DETECTION_CONFIDENCE = {
   [ERROR_CODES.evaluationExpired]: "RELIABLE",
   [ERROR_CODES.invalidToken]: "RELIABLE",
   [ERROR_CODES.evaluationRegistrationRequired]: "RELIABLE",
+  [ERROR_CODES.evaluationActivationFailed]: "BEST_EFFORT",
   [ERROR_CODES.evaluationRegistrationFailed]: "BEST_EFFORT",
   [ERROR_CODES.evaluationValidationFailed]: "BEST_EFFORT",
   [ERROR_CODES.unknownCommand]: "RELIABLE"

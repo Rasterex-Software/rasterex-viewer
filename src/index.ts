@@ -18,6 +18,8 @@ export { CollaborationApi } from "./domains/collaboration/CollaborationApi.js";
 export { StylesApi } from "./domains/styles/StylesApi.js";
 export { LayersApi } from "./domains/layers/LayersApi.js";
 export { BlocksApi } from "./domains/blocks/BlocksApi.js";
+export { ViewSyncApi } from "./domains/view-sync/ViewSyncApi.js";
+export { ClientCompareApi } from "./domains/client-compare/ClientCompareApi.js";
 export {
   ToolsApi,
   ToolsNavigationApi,
@@ -211,6 +213,41 @@ export type {
   SetBlockVisibilityOptions
 } from "./domains/blocks/BlocksApi.js";
 export type {
+  ViewSyncApiOptions,
+  ViewSyncApplied,
+  ViewSyncApplyOptions,
+  ViewSyncChange,
+  ViewSyncConfiguration,
+  ViewSyncConfigured,
+  ViewSyncEventHandler,
+  ViewSyncEventMap,
+  ViewSyncEventName,
+  ViewSyncEventUnsubscribe,
+  ViewSyncFailed,
+  ViewSyncMode,
+  ViewSyncSnapshot,
+  ViewSyncSnapshotApplied,
+  ViewSyncSnapshotApplyOptions,
+  ViewSyncSnapshotRequest
+} from "./domains/view-sync/ViewSyncApi.js";
+export type {
+  ClientCompareAlignComplete,
+  ClientCompareAlignStarted,
+  ClientCompareApiOptions,
+  ClientCompareClosed,
+  ClientCompareCommandOptions,
+  ClientCompareCommonLevelChanged,
+  ClientCompareCreateOptions,
+  ClientCompareEventHandler,
+  ClientCompareEventMap,
+  ClientCompareEventName,
+  ClientCompareEventUnsubscribe,
+  ClientCompareFailure,
+  ClientCompareOpacityChanged,
+  ClientCompareReady,
+  ClientCompareSourceOptions
+} from "./domains/client-compare/ClientCompareApi.js";
+export type {
   AddMeasurementScaleOptions,
   CalibrationApplyOptions,
   CalibrationCancelOptions,
@@ -297,5 +334,6 @@ export type {
   EvaluationRegistrationOptions,
   RasterexViewerInfo,
   RasterexViewerOptions,
+  ViewerReadyOptions,
   ViewerState
 } from "./types/index.js";

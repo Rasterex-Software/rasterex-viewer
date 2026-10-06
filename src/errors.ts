@@ -68,13 +68,15 @@ export function createContainerNotFoundError(
 }
 
 export function createCanvasReadyTimeoutError(
-  timeoutMs: number
+  timeoutMs: number,
+  viewerUrl: string
 ): RasterexViewerError {
   return new RasterexViewerError({
     code: ERROR_CODES.canvasReadyTimeout,
-    message: `Rasterex Canvas did not send viewer.ready within ${timeoutMs / 1000} seconds.`,
+    message: `Rasterex Canvas at ${viewerUrl} did not become ready within ${timeoutMs / 1000} seconds.`,
     context: {
-      timeoutMs
+      timeoutMs,
+      viewerUrl
     }
   });
 }
@@ -134,6 +136,7 @@ export function createEvaluationError(
     | typeof ERROR_CODES.evaluationExpired
     | typeof ERROR_CODES.invalidToken
     | typeof ERROR_CODES.evaluationRegistrationRequired
+    | typeof ERROR_CODES.evaluationActivationFailed
     | typeof ERROR_CODES.evaluationRegistrationFailed
     | typeof ERROR_CODES.evaluationValidationFailed,
   message: string,

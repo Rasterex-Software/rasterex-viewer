@@ -1,16 +1,35 @@
 # Rasterex Viewer SDK
 
-Embed Rasterex Canvas in a web application with a small, framework-independent
-TypeScript SDK. The SDK mounts Canvas in an iframe, communicates through
-PostMessage, and provides typed APIs for files, tools, events, and viewer
-features.
+Rasterex Viewer SDK puts technical drawings inside your own web application.
+Open DWG, DXF, DGN, IFC, PDF and 100+ other formats, then let users mark up,
+measure and compare revisions. The engine runs on your own infrastructure; this
+package is the typed client that embeds it.
 
 Customer production deployments are self-hosted. Rasterex provides a hosted
 Canvas Sandbox for evaluation and proof-of-concept testing.
 
 ## Evaluation
 
-For a new evaluation, provide a company name and company email:
+The SDK automatically starts and validates a 30-day evaluation before
+`viewer.ready()` resolves when using Rasterex's hosted Sandbox. No license key,
+company name, or email address is required. Evaluation expiry is determined by
+Rasterex.
+
+When `viewerUrl` points to a client-owned or self-hosted Canvas, the SDK skips
+Rasterex's hosted evaluation API. Self-hosted and air-gapped deployments do not
+need network access to Rasterex's evaluation service; licensing and entitlement
+for those deployments remain the responsibility of the Canvas deployment.
+
+If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
+`INVALID_TOKEN`, `EVALUATION_ACTIVATION_FAILED`,
+`EVALUATION_REGISTRATION_FAILED`, or
+`EVALUATION_VALIDATION_FAILED`. The viewer
+container also displays an accessible error message.
+
+### Optional Company Details
+
+You may optionally provide both a company name and email address when creating
+the viewer:
 
 ```ts
 const viewer = createViewer({
@@ -22,16 +41,10 @@ const viewer = createViewer({
 });
 ```
 
-The SDK registers the evaluation and validates it before `viewer.ready()`
-resolves. Later startups continue through backend validation; expiry is
-determined by the backend.
+Both fields are optional. Supplying only one is treated the same as omitting
+them. Adding or changing these values does not restart an existing evaluation.
 
-If startup fails, `viewer.ready()` rejects with `EVALUATION_EXPIRED`,
-`INVALID_TOKEN`, `EVALUATION_REGISTRATION_REQUIRED`,
-`EVALUATION_REGISTRATION_FAILED`, or `EVALUATION_VALIDATION_FAILED`. The viewer
-container also displays an accessible error message.
-
-Full [documentation](https://docs.rasterex.com/) ·
+Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs/getting-started/quick-start) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
 [issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
@@ -42,11 +55,13 @@ Full [documentation](https://docs.rasterex.com/) ·
 
 The SDK defaults to `https://sandbox.rasterex.com`, Rasterex's hosted Canvas
 environment for evaluation and proof-of-concept testing. The SDK embeds it in
-an iframe and sends Canvas broker messages to that origin.
+an iframe and sends Canvas broker messages to that origin. The hosted
+evaluation flow is selected when the configured viewer URL has the Sandbox
+origin, including Sandbox URLs with a path or query string.
 
 Documents opened in Sandbox must be reachable from the hosted viewer
-environment. The public PDF used in the examples is intentionally suitable for
-this purpose.
+environment. The public PDF and DWG used in the examples are intentionally
+suitable for this purpose.
 
 ### Self-Hosted Production
 
@@ -61,10 +76,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: "https://viewer.example.com",
   targetOrigin: "https://viewer.example.com",
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 
 await viewer.mount();
@@ -73,6 +84,15 @@ await viewer.ready();
 
 If `targetOrigin` is omitted, the SDK derives it from `viewerUrl` with
 `new URL(viewerUrl).origin`.
+
+## Deployment
+
+Rasterex Canvas production runs on Windows Server, and a Windows container
+deployment path is available. The hosted Sandbox is for evaluation and
+proof-of-concept testing only.
+
+The SDK package does not bundle the Canvas application. It loads a separately
+deployed hosted or self-hosted Canvas URL in an iframe.
 
 ## Install And Requirements
 
@@ -138,7 +158,7 @@ from the viewer URL when it is not provided.
 
 ## Open A Document
 
-After the viewer is ready, open a document URL:
+After the viewer is ready, open a PDF or a CAD document URL:
 
 ```ts
 await viewer.documents.open({
@@ -147,11 +167,18 @@ await viewer.documents.open({
   cacheId: "file_7f3a9c2_sample_pdf",
   mime: "application/pdf"
 });
+
+await viewer.documents.open({
+  url: "https://raw.githubusercontent.com/nextgis/dwg_samples/master/arc_2000.dwg",
+  displayName: "arc_2000.dwg",
+  cacheId: "sample_arc_2000_dwg",
+  mime: "application/acad"
+});
 ```
 
-The file URL must be reachable by the viewer environment. This example uses a
-public PDF for Sandbox demonstration only; production URLs must be reachable
-by your self-hosted Rasterex Canvas deployment.
+The file URL must be reachable by the viewer environment. These public files
+are for Sandbox demonstration only; production URLs must be reachable by your
+self-hosted Rasterex Canvas deployment.
 
 `displayName` should include the file extension, such as `sample.pdf`.
 `cacheId` should be a stable file or content ID from your application or server,
@@ -261,13 +288,50 @@ interface RasterexViewerOptions {
 | `container` | DOM element or selector where the iframe is mounted. |
 | `viewerUrl` | Viewer URL to load. Defaults to `https://sandbox.rasterex.com`. |
 | `targetOrigin` | Trusted origin for viewer messages. Defaults to the origin of `viewerUrl`. |
-| `connectTimeoutMs` | Timeout for iframe loading. |
-| `readyTimeoutMs` | Timeout while waiting for viewer readiness. |
+| `connectTimeoutMs` | Advisory duration after which the SDK emits a slow iframe diagnostic; it does not reject `mount()`. |
+| `readyTimeoutMs` | Maximum duration for the complete `ready()` lifecycle. Defaults to 60 seconds and rejects with `CANVAS_READY_TIMEOUT`. |
 | `commandTimeoutMs` | Timeout for commands that wait for a viewer response. |
 | `debug` | Writes SDK diagnostics to `console.debug`. |
 | `iframeTitle` | Accessible iframe title. |
 | `iframeClassName` | CSS class applied to the iframe. |
 | `iframeAttributes` | Extra iframe attributes, for example `{ allow: "fullscreen" }`. |
+
+## Capabilities
+
+These calls expose the main CAD, markup and review workflows:
+
+```ts
+const layers = await viewer.layers.getLayers();
+
+const blocks = await viewer.blocks.getBlocks();
+const attributes = await viewer.blocks.getAttributes({
+  index: blocks.blocks[0]?.index ?? 0
+});
+
+viewer.measurements.scale.add({
+  scale: {
+    label: "1:100",
+    value: "100",
+    metric: "metric",
+    metricUnit: "Millimeter",
+    dimPrecision: 2,
+    isSelected: true
+  }
+});
+
+const comparison = await viewer.compare.compare({
+  backgroundUrl: "https://files.example.com/revision-a.dwg",
+  overlayUrl: "https://files.example.com/revision-b.dwg"
+});
+
+viewer.annotations.on("created", (event) => {
+  console.log("Created annotation:", event.guid);
+});
+```
+
+`annotations.getData()` resolves to `{ filter, requestId, items, count }`.
+Annotation event IDs are on `event.guid`. `comparisonComplete` handlers
+receive the `ComparisonResult` directly; it is not wrapped in `.data`.
 
 ## Common APIs
 
@@ -286,14 +350,45 @@ if (firstLayer?.index !== undefined) {
 const blocks = await viewer.blocks.getBlocks();
 const firstBlock = blocks.blocks[0];
 if (firstBlock?.index !== undefined) {
-  await viewer.blocks.getBlockDetails({ index: firstBlock.index });
-  viewer.blocks.setBlockVisibility({ index: firstBlock.index, visible: false });
+  await viewer.blocks.getDetails({ index: firstBlock.index });
+  viewer.blocks.setVisibility({ index: firstBlock.index, visible: false });
 }
 
-viewer.compare.compare({ backgroundUrl: "old.pdf", overlayUrl: "new.pdf" });
+const comparison = await viewer.compare.compare({
+  backgroundUrl: "old.pdf",
+  overlayUrl: "new.pdf"
+});
 viewer.styles.setGlobalAppearance({ strokeColor: "#164863" });
 viewer.diagnostics.on("transport.error", (event) => console.error(event.error));
 ```
+
+### Synchronize Views
+
+Each viewer reports its own pan and zoom changes. After both viewers are ready
+and their documents have emitted `fileReady`, configure them in the same group
+and relay changes through the SDK:
+
+```ts
+const groupId = "review-42";
+const leftId = left.getInfo().sdkInstanceId;
+const rightId = right.getInfo().sdkInstanceId;
+
+await Promise.all([
+  left.viewSync.configure({ groupId, instanceId: leftId, mode: "panAndZoom" }),
+  right.viewSync.configure({ groupId, instanceId: rightId, mode: "panAndZoom" })
+]);
+
+const stopLeft = left.viewSync.on("changed", (change) => right.viewSync.apply(change));
+const stopRight = right.viewSync.on("changed", (change) => left.viewSync.apply(change));
+
+// On cleanup: stopLeft(); stopRight(); left.destroy(); right.destroy();
+```
+
+`apply()` sends a command and returns immediately. Subscribe to `applied` and
+`failed` for Canvas results. For cross-origin Canvas deployments, include the
+host origin in the Canvas URL's `parentOrigin` query parameter as required by
+your Canvas deployment. Use `mode: "zoom"` when drawings have different page
+geometry; raw pan coordinates may not identify the same location.
 
 ### Tool Control
 
@@ -315,6 +410,27 @@ const unsubscribe = viewer.annotations.on("created", (event) => {
 });
 
 unsubscribe();
+```
+
+### Readiness Bounds
+
+`connectTimeoutMs` remains an advisory diagnostic for iframe loading.
+`readyTimeoutMs` is a rejecting bound for the complete `ready()` lifecycle,
+including hosted Sandbox evaluation. The timeout error includes the configured
+viewer URL and timeout duration:
+
+```ts
+await viewer.ready();
+```
+
+Use an `AbortSignal` when the host application needs to cancel readiness:
+
+```ts
+const controller = new AbortController();
+const readiness = viewer.ready({ signal: controller.signal });
+
+controller.abort();
+await readiness; // rejects with VIEWER_NOT_READY
 ```
 
 ## TypeScript
@@ -345,10 +461,6 @@ const viewer = createViewer({
   container: "#rx-viewer",
   viewerUrl: sandboxCanvas.viewerUrl,
   targetOrigin: sandboxCanvas.targetOrigin,
-  evaluation: {
-    company: "Example Company",
-    email: "user@example.com"
-  }
 });
 ```
 
