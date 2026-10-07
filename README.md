@@ -1,12 +1,64 @@
 # Rasterex Viewer SDK
 
-Rasterex Viewer SDK puts technical drawings inside your own web application.
-Open DWG, DXF, DGN, IFC, PDF and 100+ other formats, then let users mark up,
-measure and compare revisions. The engine runs on your own infrastructure; this
-package is the typed client that embeds it.
+Embed technical drawings and documents in web applications with a
+framework-independent TypeScript SDK. Rasterex Viewer loads a hosted or
+self-hosted Rasterex Canvas deployment in an iframe and provides typed APIs for
+documents, tools, markup, measurement, collaboration, and drawing comparison.
 
-Customer production deployments are self-hosted. Rasterex provides a hosted
-Canvas Sandbox for evaluation and proof-of-concept testing.
+Open DWG, DXF, DGN, IFC, PDF, and 100+ other formats supported by your Rasterex
+Canvas deployment. Use the hosted Sandbox for evaluation and proof-of-concept
+testing, or connect the SDK to your own Canvas deployment for production,
+private files, and air-gapped environments.
+
+## Install
+
+```sh
+npm install @rasterex/viewer
+```
+
+## Quick Start
+
+Create a viewer, mount its iframe, and wait for Canvas to become ready:
+
+```ts
+import { createViewer } from "@rasterex/viewer";
+
+const viewer = createViewer({
+  container: "#rx-viewer"
+});
+
+await viewer.mount();
+await viewer.ready();
+```
+
+```html
+<div id="rx-viewer" style="width: 100%; height: 640px"></div>
+```
+
+Without `viewerUrl`, the SDK uses the hosted Rasterex Sandbox. For production,
+provide the URL of your self-hosted Canvas deployment:
+
+```ts
+const viewer = createViewer({
+  container: "#rx-viewer",
+  viewerUrl: "https://viewer.example.com",
+  targetOrigin: "https://viewer.example.com"
+});
+```
+
+## Supported Workflows
+
+- Open remote documents and browser-local files.
+- Control tools, annotations, markup, layers, and measurements.
+- Compare drawing revisions and synchronize views.
+- Use the core SDK from vanilla JavaScript, React, Vue, Angular, Vite,
+  Next.js, Webpack, or Rollup applications.
+
+Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs/getting-started/quick-start) ·
+[documentation](https://docs.rasterex.com/) ·
+[source](https://github.com/Rasterex-Software/rasterex-viewer) ·
+[runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
+[issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
 
 ## Evaluation
 
@@ -43,11 +95,6 @@ const viewer = createViewer({
 
 Both fields are optional. Supplying only one is treated the same as omitting
 them. Adding or changing these values does not restart an existing evaluation.
-
-Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs/getting-started/quick-start) ·
-[source](https://github.com/Rasterex-Software/rasterex-viewer) ·
-[runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
-[issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
 
 ## Choose A Viewer Environment
 
@@ -94,11 +141,7 @@ proof-of-concept testing only.
 The SDK package does not bundle the Canvas application. It loads a separately
 deployed hosted or self-hosted Canvas URL in an iframe.
 
-## Install And Requirements
-
-```sh
-npm install @rasterex/viewer
-```
+## Installation Details
 
 Use the package from a bundled application such as Vite, Next.js, Angular,
 React, Vue, Webpack, or Rollup. Use Node.js `^20.19.0 || >=22.12.0` when
@@ -137,24 +180,6 @@ and add an import map before your module script:
   await viewer.ready();
 </script>
 ```
-
-## Quick Start
-
-Create a viewer, mount its iframe, then wait for Canvas to become ready:
-
-```ts
-import { createViewer } from "@rasterex/viewer";
-
-const viewer = createViewer({
-  container: "#rx-viewer"
-});
-
-await viewer.mount();
-await viewer.ready();
-```
-
-Without `viewerUrl`, this uses the hosted Sandbox. `targetOrigin` is derived
-from the viewer URL when it is not provided.
 
 ## Open A Document
 
