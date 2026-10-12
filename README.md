@@ -1,7 +1,7 @@
-# Rasterex Viewer SDK
+# Rasterex Viewer SDK — JavaScript & TypeScript CAD, DWG & PDF Viewer
 
 Embed technical drawings and documents in web applications with a
-framework-independent TypeScript SDK. Rasterex Viewer loads a hosted or
+framework-independent JavaScript and TypeScript SDK. Rasterex Viewer loads a hosted or
 self-hosted Rasterex Canvas deployment in an iframe and provides typed APIs for
 documents, tools, markup, measurement, collaboration, and drawing comparison.
 
@@ -46,6 +46,10 @@ const viewer = createViewer({
 });
 ```
 
+JavaScript applications use the same API without a TypeScript build step.
+TypeScript applications get bundled declarations, typed options, results, and
+events; no separate `@types` package is needed.
+
 ## Supported Workflows
 
 - Open remote documents and browser-local files.
@@ -58,7 +62,15 @@ Full [JavaScript Document Viewer SDK Quick Start](https://docs.rasterex.com/docs
 [documentation](https://docs.rasterex.com/) ·
 [source](https://github.com/Rasterex-Software/rasterex-viewer) ·
 [runnable examples](https://github.com/Rasterex-Software/rasterex-viewer-examples) ·
-[issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues)
+[issues and support](https://github.com/Rasterex-Software/rasterex-viewer/issues) ·
+[npm package](https://www.npmjs.com/package/@rasterex/viewer) ·
+[Rasterex CAD, BIM & PDF viewer SDK](https://rasterex.com/)
+
+## Integration Guides
+
+- [React CAD and DWG viewer integration](https://github.com/Rasterex-Software/rasterex-viewer/blob/main/docs/live-npm/frameworks/react.md): component lifecycle, document loading, and cleanup.
+- [Self-hosted JavaScript and TypeScript document viewer](https://github.com/Rasterex-Software/rasterex-viewer/blob/main/docs/live-npm/getting-started/self-hosted.md): connect your own Canvas deployment and handle startup errors.
+- [Drawing revision comparison](https://github.com/Rasterex-Software/rasterex-viewer/blob/main/docs/live-npm/compare/compare.md): compare two sources and await the typed result.
 
 ## Evaluation
 

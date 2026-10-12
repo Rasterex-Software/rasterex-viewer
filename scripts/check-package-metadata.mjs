@@ -13,7 +13,7 @@ assert.equal(new Set(keywords).size, keywords.length, "Keywords must be unique")
 assert.ok(keywords.every(keyword => typeof keyword === "string" && keyword.trim() && keyword === keyword.toLowerCase()), "Keywords must be non-empty lowercase strings");
 assert.ok(keywords.every(keyword => keyword.length <= 50), "Keywords must be concise");
 
-for (const term of ["dwg", "dxf", "dgn", "ifc", "pdf", "typescript", "drawing comparison"]) {
+for (const term of ["dwg", "dxf", "dgn", "ifc", "pdf", "javascript", "typescript", "drawing comparison"]) {
   assert.ok(normalizedDescription.includes(term), `Description must mention ${term}`);
 }
 
