@@ -1,6 +1,6 @@
 {
   "name": "@rasterex/viewer",
-  "version": "2.2.4",
+  "version": "2.2.6",
   "description": "Framework-independent JavaScript and TypeScript SDK for embedding Rasterex Canvas CAD, DWG, DXF, DGN, IFC and PDF viewers. Typed APIs for markup, measurements and drawing comparison, with self-hosted deployment support.",
   "author": {
     "name": "Rasterex Software AS",
@@ -52,7 +52,8 @@
     "check": "npm run check:versions && npm run check:metadata && npm run build && npm test && npm run check:source-lines && npm run check:package",
     "check:source-lines": "node scripts/check-source-line-limit.mjs",
     "test:evaluation": "npm run build && node --test test/evaluation.test.mjs",
-    "dev": "vite examples/vanilla"
+    "dev": "vite examples/vanilla",
+    "dev:annotations": "npm run build && node examples/annotation-tools/dev.mjs"
   },
   "keywords": [
     "rasterex",

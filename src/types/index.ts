@@ -1,11 +1,8 @@
-import type {
-  Capability,
-  CompatibilityResult
-} from "../protocol/index.js";
+import type { CompatibilityResult } from "../protocol/index.js";
 
 export interface RasterexViewerOptions {
   container: HTMLElement | string;
-  /** Optional company details for the initial evaluation. */
+  /** Optional company details and internal evaluation bypass. */
   evaluation?: EvaluationRegistrationOptions;
   viewerUrl?: string;
   targetOrigin?: string;
@@ -19,6 +16,8 @@ export interface RasterexViewerOptions {
 }
 
 export interface EvaluationRegistrationOptions {
+  /** Extractable internal convenience key; skips evaluation, not Canvas readiness. */
+  internalBypassKey?: string;
   /** Optional company name; provide it together with `email`. */
   company?: string;
   /** Optional email address; provide it together with `company`. */
@@ -48,7 +47,8 @@ export interface RasterexViewerInfo {
   state: ViewerState;
   canvasVersion: string | null;
   buildDate: string | null;
-  capabilities: readonly Capability[] | null;
+  /** SDK baseline plus capabilities advertised by the active Canvas viewer. */
+  capabilities: readonly string[] | null;
   minimumSdkVersion: string | null;
   compatibility: CompatibilityResult | null;
 }

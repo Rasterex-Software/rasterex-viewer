@@ -175,8 +175,11 @@ export type {
   AnnotationProperties,
   AnnotationPropertiesResult,
   GlobalAppearanceOptions,
+  MeasurementAppearanceMode,
+  MeasurementAppearanceResult,
   GetAnnotationPropertiesOptions,
   SetAnnotationPropertiesOptions,
+  SetMeasurementAppearanceOptions,
   StylesApiOptions
 } from "./domains/styles/StylesApi.js";
 export type {
