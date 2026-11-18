@@ -1,3 +1,14 @@
+import type {
+  GetMeasurementInfoOptions,
+  SelectMeasurementVertexOptions,
+  MeasurementRequestOptions,
+  MeasurementInfoResult,
+  MeasurementVertexSelectedResult,
+  MeasurementVertexSelectionClearedResult
+} from "./inspectionTypes.js";
+import { MeasurementScaleApi } from "./MeasurementScaleApi.js";
+import { MeasurementInspectionApi } from "./MeasurementInspectionApi.js";
+import { isMeasurementScale, isMeasurementScalesSnapshot } from "./scaleValidation.js";
 import { DomainEventEmitter } from "../../utils/DomainEventEmitter.js";
 import type {
   CanvasMessageBroker,
@@ -10,14 +21,23 @@ import {
 import { createCommandTimeoutError } from "../../errors.js";
 import { createRequestId } from "../../utils/createRequestId.js";
 import type {
-  AddMeasurementScaleOptions, CalibrationApplyOptions, CalibrationCancelOptions, CalibrationMeasurementSystem,
-  CalibrationFinishedEvent, CalibrationScaleCalculatedEvent, CalibrationSetOptions,
-  CalibrationStartOptions, MeasurementCalibrationEventHandler, MeasurementCalibrationEventMap,
-  MeasurementCalibrationEventName, MeasurementCalibrationEventUnsubscribe, MeasurementScale,
-  MeasurementScaleEventHandler, MeasurementScaleEventMap, MeasurementScaleEventName,
-  MeasurementScaleEventUnsubscribe, MeasurementScalePageRange, MeasurementScaleUnitSystem, MeasurementScalesSnapshot,
-  MeasurementsApiOptions, GetMeasurementScalesOptions, RequestMeasurementScalesOptions
+  CalibrationApplyOptions,
+  CalibrationCancelOptions,
+  CalibrationMeasurementSystem,
+  CalibrationFinishedEvent,
+  CalibrationScaleCalculatedEvent,
+  CalibrationSetOptions,
+  CalibrationStartOptions,
+  MeasurementCalibrationEventHandler,
+  MeasurementCalibrationEventMap,
+  MeasurementCalibrationEventName,
+  MeasurementCalibrationEventUnsubscribe,
+  MeasurementScale,
+  MeasurementScalePageRange,
+  MeasurementScalesSnapshot,
+  MeasurementsApiOptions
 } from "./types.js";
+export { MeasurementScaleApi } from "./MeasurementScaleApi.js";
 export type * from "./types.js";
 
 type CalibrationSetPayload = {
@@ -44,12 +64,30 @@ type CalibrationSetPayload = {
 };
 
 export class MeasurementsApi {
+  private readonly inspection: MeasurementInspectionApi;
   readonly scale: MeasurementScaleApi;
   readonly calibration: MeasurementCalibrationApi;
 
   constructor(options: MeasurementsApiOptions) {
+    this.inspection = new MeasurementInspectionApi(options);
     this.scale = new MeasurementScaleApi(options);
     this.calibration = new MeasurementCalibrationApi(options);
+  }
+
+  getInfo(options: GetMeasurementInfoOptions): Promise<MeasurementInfoResult> {
+    return this.inspection.getInfo(options);
+  }
+
+  selectVertex(
+    options: SelectMeasurementVertexOptions
+  ): Promise<MeasurementVertexSelectedResult> {
+    return this.inspection.selectVertex(options);
+  }
+
+  clearVertexSelection(
+    options: MeasurementRequestOptions = {}
+  ): Promise<MeasurementVertexSelectionClearedResult> {
+    return this.inspection.clearVertexSelection(options);
   }
 
   connect(): void {
@@ -58,123 +96,9 @@ export class MeasurementsApi {
   }
 
   disconnect(): void {
+    this.inspection.disconnect();
     this.scale.disconnect();
     this.calibration.disconnect();
-  }
-}
-
-export class MeasurementScaleApi {
-  private readonly options: MeasurementsApiOptions;
-  private readonly events = new DomainEventEmitter<MeasurementScaleEventMap>();
-  private broker: CanvasMessageBroker | null = null;
-  private brokerCleanups: CanvasMessageUnsubscribe[] = [];
-
-  constructor(options: MeasurementsApiOptions) {
-    this.options = options;
-  }
-
-  on<TEventName extends MeasurementScaleEventName>(
-    eventName: TEventName,
-    handler: MeasurementScaleEventHandler<TEventName>
-  ): MeasurementScaleEventUnsubscribe {
-    this.connect();
-    return this.events.on(eventName, handler);
-  }
-
-  connect(): void {
-    const broker = this.options.getBroker();
-
-    if (!broker || broker === this.broker) {
-      return;
-    }
-
-    this.disconnect();
-    this.broker = broker;
-    this.brokerCleanups = [
-      broker.on<MeasurementScalesSnapshot>("scalesSnapshot", (message) => {
-        if (isMeasurementScalesSnapshot(message.payload)) {
-          this.events.emit("snapshot", message.payload);
-        }
-      })
-    ];
-  }
-
-  disconnect(): void {
-    for (const cleanup of this.brokerCleanups) {
-      cleanup();
-    }
-
-    this.brokerCleanups = [];
-    this.broker = null;
-  }
-
-  request(options: RequestMeasurementScalesOptions = {}): void {
-    requireReadyBroker({
-      ...this.options,
-      type: "getScales",
-      apiName: "viewer.measurements.scale"
-    }).send("getScales", {
-      fileIndex: options.fileIndex
-    });
-  }
-
-  get(options: GetMeasurementScalesOptions = {}): Promise<MeasurementScalesSnapshot> {
-    const broker = requireReadyBroker({
-      ...this.options,
-      type: "getScales",
-      apiName: "viewer.measurements.scale"
-    });
-    const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
-
-    return new Promise<MeasurementScalesSnapshot>((resolve, reject) => {
-      const cleanup = broker.on<MeasurementScalesSnapshot>("scalesSnapshot", (message) => {
-        if (!isMeasurementScalesSnapshot(message.payload)) {
-          return;
-        }
-
-        if (
-          typeof options.fileIndex === "number" &&
-          typeof message.payload.fileIndex === "number" &&
-          message.payload.fileIndex !== options.fileIndex
-        ) {
-          return;
-        }
-
-        globalThis.clearTimeout(timeoutId);
-        cleanup();
-        resolve(message.payload);
-      });
-
-      const timeoutId = globalThis.setTimeout(() => {
-        cleanup();
-        reject(createCommandTimeoutError("scalesSnapshot", "getScales", timeoutMs));
-      }, timeoutMs);
-
-      broker.send("getScales", {
-        fileIndex: options.fileIndex
-      });
-    });
-  }
-
-  add(options: AddMeasurementScaleOptions): void {
-    if (!isMeasurementScale(options.scale)) {
-      throw createCanvasCommandError(
-        "addScale",
-        "Measurement scale requires label, value, metric, metricUnit, dimPrecision, and isSelected.",
-        {
-          scale: options.scale
-        }
-      );
-    }
-
-    requireReadyBroker({
-      ...this.options,
-      type: "addScale",
-      apiName: "viewer.measurements.scale"
-    }).send("addScale", {
-      fileIndex: options.fileIndex,
-      scale: options.scale
-    });
   }
 }
 
@@ -194,6 +118,7 @@ export class MeasurementCalibrationApi {
     handler: MeasurementCalibrationEventHandler<TEventName>
   ): MeasurementCalibrationEventUnsubscribe {
     this.connect();
+
     return this.events.on(eventName, handler);
   }
 
@@ -203,7 +128,6 @@ export class MeasurementCalibrationApi {
     if (!broker || broker === this.broker) {
       return;
     }
-
     this.disconnect();
     this.broker = broker;
     this.brokerCleanups = [
@@ -227,7 +151,6 @@ export class MeasurementCalibrationApi {
     for (const cleanup of this.brokerCleanups) {
       cleanup();
     }
-
     this.brokerCleanups = [];
     this.broker = null;
   }
@@ -235,23 +158,24 @@ export class MeasurementCalibrationApi {
   start(options: CalibrationStartOptions = {}): string {
     const requestId = normalizeRequestId(options.requestId);
     this.requireAvailableRequest(requestId, "calibrationStart");
-
     requireReadyBroker({
       ...this.options,
       type: "calibrationStart",
       apiName: "viewer.measurements.calibration"
-    }).send("calibrationStart", omitUndefined({
-      requestId,
-      fileIndex: options.fileIndex,
-      measurementSystem: options.measurementSystem,
-      metricType: options.metricType,
-      system: options.system,
-      metric: options.metric,
-      metricUnit: options.metricUnit,
-      unit: options.unit,
-      displayUnit: options.displayUnit
-    }));
-
+    }).send(
+      "calibrationStart",
+      omitUndefined({
+        requestId,
+        fileIndex: options.fileIndex,
+        measurementSystem: options.measurementSystem,
+        metricType: options.metricType,
+        system: options.system,
+        metric: options.metric,
+        metricUnit: options.metricUnit,
+        unit: options.unit,
+        displayUnit: options.displayUnit
+      })
+    );
     this.activeRequestId = requestId;
 
     return requestId;
@@ -280,19 +204,16 @@ export class MeasurementCalibrationApi {
           if (message.payload.requestId && message.payload.requestId !== requestId) {
             return;
           }
-
           globalThis.clearTimeout(timeoutId);
           cleanup();
           resolve(message.payload);
         }
       );
-
       const timeoutId = globalThis.setTimeout(() => {
         cleanup();
         this.clearActiveRequest(requestId);
         reject(createCommandTimeoutError(requestId, "calibrationSet", timeoutMs));
       }, timeoutMs);
-
       broker.send("calibrationSet", payload);
     });
   }
@@ -306,44 +227,48 @@ export class MeasurementCalibrationApi {
     const requestId = normalizeRequestId(options.requestId);
     const timeoutMs = options.timeoutMs ?? this.options.commandTimeoutMs;
     this.requireAvailableRequest(requestId, "calibrationAddScale");
-
     this.activeRequestId = requestId;
 
     return new Promise<MeasurementScalesSnapshot>((resolve, reject) => {
-      const cleanup = broker.on<MeasurementScalesSnapshot>("scalesSnapshot", (message) => {
-        if (!isMeasurementScalesSnapshot(message.payload)) {
-          return;
+      const cleanup = broker.on<MeasurementScalesSnapshot>(
+        "scalesSnapshot",
+        (message) => {
+          if (!isMeasurementScalesSnapshot(message.payload)) {
+            return;
+          }
+          globalThis.clearTimeout(timeoutId);
+          cleanup();
+          this.clearActiveRequest(requestId);
+          resolve(message.payload);
         }
-
-        globalThis.clearTimeout(timeoutId);
-        cleanup();
-        this.clearActiveRequest(requestId);
-        resolve(message.payload);
-      });
-
+      );
       const timeoutId = globalThis.setTimeout(() => {
         cleanup();
         this.clearActiveRequest(requestId);
         reject(createCommandTimeoutError(requestId, "calibrationAddScale", timeoutMs));
       }, timeoutMs);
-
-      broker.send("calibrationAddScale", omitUndefined({
-        requestId,
-        scale: options.scale
-      }));
+      broker.send(
+        "calibrationAddScale",
+        omitUndefined({
+          requestId,
+          scale: options.scale
+        })
+      );
     });
   }
 
   cancel(options: CalibrationCancelOptions = {}): void {
     const requestId = options.requestId?.trim() || undefined;
-
     requireReadyBroker({
       ...this.options,
       type: "calibrationCancel",
       apiName: "viewer.measurements.calibration"
-    }).send("calibrationCancel", omitUndefined({
-      requestId
-    }));
+    }).send(
+      "calibrationCancel",
+      omitUndefined({
+        requestId
+      })
+    );
 
     if (!requestId || requestId === this.activeRequestId) {
       this.activeRequestId = null;
@@ -398,30 +323,6 @@ export class MeasurementCalibrationApi {
   }
 }
 
-function isMeasurementScalesSnapshot(
-  payload: MeasurementScalesSnapshot | undefined
-): payload is MeasurementScalesSnapshot {
-  return !!payload && typeof payload === "object" && Array.isArray(payload.scales);
-}
-
-function isMeasurementScale(scale: MeasurementScale | undefined): scale is MeasurementScale {
-  return (
-    !!scale &&
-    typeof scale.label === "string" &&
-    typeof scale.value === "string" &&
-    isMeasurementScaleUnitSystem(scale.metric) &&
-    typeof scale.metricUnit === "string" &&
-    typeof scale.dimPrecision === "number" &&
-    typeof scale.isSelected === "boolean"
-  );
-}
-
-function isMeasurementScaleUnitSystem(
-  metric: unknown
-): metric is MeasurementScaleUnitSystem {
-  return typeof metric === "string" || typeof metric === "number";
-}
-
 function omitUndefined<TPayload extends Record<string, unknown>>(
   payload: TPayload
 ): TPayload {
@@ -432,6 +333,7 @@ function omitUndefined<TPayload extends Record<string, unknown>>(
 
 function normalizeRequestId(requestId: string | undefined): string {
   const normalizedRequestId = requestId?.trim();
+
   return normalizedRequestId || createRequestId();
 }
 

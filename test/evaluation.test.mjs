@@ -31,6 +31,109 @@ function json(body, status = 200) {
   });
 }
 
+function stalledResponse(signal, onAbort = () => {}) {
+  return new Response(new ReadableStream({
+    start(controller) {
+      signal.addEventListener("abort", () => {
+        onAbort();
+        controller.error(new DOMException("Request aborted", "AbortError"));
+      }, { once: true });
+    }
+  }), { headers: { "Content-Type": "application/json" } });
+}
+
+test("evaluation request timeout and destroy cover response bodies", async (t) => {
+  const { EvaluationService } = await import("../dist/evaluation/EvaluationService.js");
+
+  for (const token of [null, "stored-token"]) {
+    const stage = token ? "validation" : "activation";
+
+    await t.test(`${stage} times out while consuming the body`, async () => {
+      let calls = 0;
+      let aborts = 0;
+      installBrowser({ token, fetch: async (_url, options) => {
+        calls += 1;
+        return stalledResponse(options.signal, () => { aborts += 1; });
+      } });
+      window.setTimeout = (callback, ms) => setTimeout(callback, ms === 10_000 ? 5 : 0);
+
+      await assert.rejects(new EvaluationService().initialize(), (error) => {
+        assert.equal(error.code, token ? "EVALUATION_VALIDATION_FAILED" : "EVALUATION_ACTIVATION_FAILED");
+        assert.equal(error.context.timeoutMs, 10_000);
+        return true;
+      });
+      assert.equal(calls, token ? 3 : 1);
+      assert.equal(aborts, calls);
+    });
+
+    await t.test(`destroy aborts ${stage} body consumption`, async () => {
+      let bodyStarted;
+      const started = new Promise(resolve => { bodyStarted = resolve; });
+      let signal;
+      let calls = 0;
+      installBrowser({ token, fetch: async (_url, options) => {
+        calls += 1;
+        signal = options.signal;
+        return {
+          ok: true,
+          status: 200,
+          json() {
+            bodyStarted();
+            return stalledResponse(signal).json();
+          }
+        };
+      } });
+
+      const service = new EvaluationService();
+      const pending = service.initialize();
+      await started;
+      service.destroy();
+      assert.equal(signal.aborted, true);
+      await assert.rejects(pending);
+      assert.equal(calls, 1);
+    });
+  }
+
+  await t.test("retries a network failure while reading a validation body", async () => {
+    let calls = 0;
+    installBrowser({ token: "stored-token", fetch: async () => {
+      calls += 1;
+      return calls === 1
+        ? new Response(new ReadableStream({ start(controller) { controller.error(new TypeError("connection lost")); } }))
+        : json({ valid: true, expires: "backend-expiry" });
+    } });
+    window.setTimeout = (callback, ms) => setTimeout(callback, ms === 10_000 ? ms : 0);
+    await new EvaluationService().initialize();
+    assert.equal(calls, 2);
+  });
+
+  await t.test("does not retry malformed validation JSON", async () => {
+    let calls = 0;
+    installBrowser({ token: "stored-token", fetch: async () => {
+      calls += 1;
+      return new Response("{invalid");
+    } });
+    await assert.rejects(new EvaluationService().initialize(), error => error.code === "EVALUATION_VALIDATION_FAILED");
+    assert.equal(calls, 1);
+  });
+
+  await t.test("preserves permanent HTTP failure without reading its broken body", async () => {
+    let calls = 0;
+    installBrowser({ token: "stored-token", fetch: async () => {
+      calls += 1;
+      return new Response(new ReadableStream({
+        start(controller) { controller.error(new TypeError("connection lost")); }
+      }), { status: 403 });
+    } });
+    await assert.rejects(new EvaluationService().initialize(), error => {
+      assert.equal(error.code, "EVALUATION_VALIDATION_FAILED");
+      assert.equal(error.context.status, 403);
+      return true;
+    });
+    assert.equal(calls, 1);
+  });
+});
+
 test("evaluation activation and validation lifecycle", async (t) => {
   const { EvaluationService } = await import("../dist/evaluation/EvaluationService.js");
 

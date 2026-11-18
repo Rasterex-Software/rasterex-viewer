@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Rasterex Modern annotation appearance</title>
+  <style>
+    body { font: 16px system-ui, sans-serif; margin: 24px; color: #17202a; }
+    form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input { width: min(480px, 70vw); }
+    input, button, select { font: inherit; padding: 8px; }
+    #viewer { height: 70vh; border: 1px solid #ccd1d1; margin-top: 16px; }
+    #status { min-height: 24px; }
+  </style>
+</head>
+<body>
+  <h1>Annotation appearance</h1>
+  <p>Viewers start in Legacy. Switch to Modern after the viewer is ready.</p>
+  <form id="open">
+    <label>Canvas URL <input id="url" type="url" required placeholder="Your Canvas deployment URL"></label>
+    <button id="mount" type="submit">Open viewer</button>
+    <label>Appearance <select id="mode" disabled>
+      <option value="legacy" selected>Legacy (default)</option>
+      <option value="modern">Modern</option>
+    </select></label>
+  </form>
+  <p id="status" role="status">Enter a Canvas URL to begin.</p>
+  <div id="viewer"></div>
+  <script type="module">
+    import { createViewer } from "../dist/index.js";
+
+    const form = document.querySelector("#open");
+    const urlInput = document.querySelector("#url");
+    const mount = document.querySelector("#mount");
+    const mode = document.querySelector("#mode");
+    const status = document.querySelector("#status");
+    let viewer;
+    let confirmedMode = "legacy";
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      mount.disabled = true;
+      mode.disabled = true;
+      try {
+        const url = new URL(urlInput.value);
+        if (!["http:", "https:"].includes(url.protocol)) throw new Error("Use an HTTP or HTTPS Canvas URL.");
+        url.searchParams.set("parentOrigin", window.location.origin);
+        viewer?.destroy();
+        viewer = createViewer({ container: "#viewer", viewerUrl: url.href });
+        mode.value = confirmedMode = "legacy";
+        status.textContent = "Waiting for Canvas…";
+        await viewer.mount();
+        await viewer.ready();
+        const supported = viewer.getInfo().capabilities?.includes("measurementAppearance");
+        mode.disabled = !supported;
+        status.textContent = supported ? "Ready. Legacy is selected." : "Ready. This viewer does not advertise appearance switching.";
+      } catch (error) { status.textContent = error.message; }
+      finally { mount.disabled = false; }
+    });
+
+    mode.addEventListener("change", async () => {
+      mode.disabled = true;
+      mount.disabled = true;
+      status.textContent = "Changing appearance…";
+      try {
+        const result = await viewer.styles.setMeasurementAppearance({ mode: mode.value });
+        confirmedMode = result.mode;
+        status.textContent = `Confirmed appearance: ${result.mode}.`;
+      } catch (error) {
+        mode.value = confirmedMode;
+        status.textContent = `Could not confirm the change: ${error.message}. Last confirmed appearance: ${confirmedMode}.`;
+      } finally { mode.disabled = false; mount.disabled = false; }
+    });
+    window.addEventListener("pagehide", () => viewer?.destroy());
+  </script>
+</body>
+</html>

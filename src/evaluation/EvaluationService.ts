@@ -26,6 +26,12 @@ interface ValidationResponse {
   reason?: string | null;
 }
 
+interface EvaluationResponse {
+  ok: boolean;
+  status: number;
+  body: unknown;
+}
+
 export class EvaluationService {
   private initialization: Promise<EvaluationValidation> | null = null;
   private controller: AbortController | null = null;
@@ -146,12 +152,12 @@ export class EvaluationService {
       throw new EvaluationHttpError(response.status);
     }
 
-    return parseActivationResponse(await response.json());
+    return parseActivationResponse(response.body);
   }
 
   private async requestValidation(token: string): Promise<ValidationResponse> {
     const response = await this.request("validate", { token });
-    const body = await response.json().catch(() => undefined);
+    const body = response.body;
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -172,7 +178,7 @@ export class EvaluationService {
     return parseValidationResponse(body);
   }
 
-  private async request(path: string, body: Record<string, string>): Promise<Response> {
+  private async request(path: string, body: Record<string, string>): Promise<EvaluationResponse> {
     if (this.destroyed) {
       throw new EvaluationAbortedError();
     }
@@ -186,12 +192,25 @@ export class EvaluationService {
     }, REQUEST_TIMEOUT_MS);
 
     try {
-      return await fetch(`${EVALUATION_API_BASE_URL}/${path}`, {
+      const response = await fetch(`${EVALUATION_API_BASE_URL}/${path}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
         signal: controller.signal
       });
+      if (!response.ok && response.status !== 404) {
+        return { ok: false, status: response.status, body: undefined };
+      }
+
+      const responseBody: unknown = await response.json().catch((cause: unknown) => {
+        if (cause instanceof SyntaxError) {
+          return undefined;
+        }
+
+        throw cause;
+      });
+
+      return { ok: response.ok, status: response.status, body: responseBody };
     } catch (cause) {
       if (this.destroyed) {
         throw new EvaluationAbortedError();

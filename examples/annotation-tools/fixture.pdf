@@ -1,0 +1,112 @@
+%PDF-1.7
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Count 7 /Kids [5 0 R 7 0 R 9 0 R 11 0 R 13 0 R 15 0 R 17 0 R] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Length 107 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (ordinary) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [0 0 600 500] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Length 103 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (crop) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 113 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (crop-rotate-90) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 90 /Resources << /Font << /F1 3 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 114 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (crop-rotate-180) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 180 /Resources << /Font << /F1 3 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 114 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (crop-rotate-270) Tj ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 270 /Resources << /Font << /F1 3 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 114 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (viewer-rotation) Tj ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Length 110 >>
+stream
+0 0 1 RG 1 w 120 140 180 100 re S
+0 0.5 0 RG 140 300 m 340 340 l S
+BT /F1 12 Tf 90 400 Td (calibration) Tj ET
+endstream
+endobj
+17 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 500] /CropBox [40 60 560 460] /Rotate 0 /Resources << /Font << /F1 3 0 R >> >> /Contents 16 0 R >>
+endobj
+xref
+0 18
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000155 00000 n 
+0000000225 00000 n 
+0000000382 00000 n 
+0000000541 00000 n 
+0000000694 00000 n 
+0000000855 00000 n 
+0000001018 00000 n 
+0000001180 00000 n 
+0000001345 00000 n 
+0000001510 00000 n 
+0000001675 00000 n 
+0000001840 00000 n 
+0000002005 00000 n 
+0000002168 00000 n 
+0000002329 00000 n 
+trailer
+<< /Size 18 /Root 1 0 R >>
+startxref
+2492
+%%EOF

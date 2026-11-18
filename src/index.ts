@@ -175,8 +175,11 @@ export type {
   AnnotationProperties,
   AnnotationPropertiesResult,
   GlobalAppearanceOptions,
+  MeasurementAppearanceMode,
+  MeasurementAppearanceResult,
   GetAnnotationPropertiesOptions,
   SetAnnotationPropertiesOptions,
+  SetMeasurementAppearanceOptions,
   StylesApiOptions
 } from "./domains/styles/StylesApi.js";
 export type {
@@ -337,3 +340,5 @@ export type {
   ViewerReadyOptions,
   ViewerState
 } from "./types/index.js";
+
+export type * from './domains/measurements/inspectionTypes.js';

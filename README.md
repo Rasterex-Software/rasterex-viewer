@@ -108,6 +108,30 @@ const viewer = createViewer({
 Both fields are optional. Supplying only one is treated the same as omitting
 them. Adding or changing these values does not restart an existing evaluation.
 
+### Internal Evaluation Bypass
+
+For internal integrations, pass the internal key through
+`evaluation.internalBypassKey`:
+
+```ts
+const viewer = createViewer({
+  container: "#rx-viewer",
+  evaluation: { internalBypassKey: "<internal-bypass-key>" }
+});
+await viewer.mount();
+await viewer.ready();
+```
+
+An exact key match skips hosted evaluation activation, registration, validation,
+and token storage access. Canvas readiness, compatibility checks, timeouts, and
+cancellation still apply. Missing, empty, or incorrect keys use normal evaluation.
+Existing stored evaluation tokens are left untouched, including expired tokens.
+The key is embedded in the public npm package and can be extracted and reused;
+this is an internal convenience switch, not an enforceable licensing boundary.
+It requires no backend changes and is not sent to Rasterex or Canvas. It does
+not make the hosted Sandbox available offline. Self-hosted Canvas already skips
+hosted evaluation and does not require this key.
+
 ## Choose A Viewer Environment
 
 ### Hosted Sandbox
@@ -398,6 +422,105 @@ const comparison = await viewer.compare.compare({
 viewer.styles.setGlobalAppearance({ strokeColor: "#164863" });
 viewer.diagnostics.on("transport.error", (event) => console.error(event.error));
 ```
+
+### Modern Annotation Appearance
+
+Fresh Canvas viewers use **Legacy** appearance. The SDK does not change that
+default. After `await viewer.ready()`, opt into Modern explicitly:
+
+```ts
+const result = await viewer.styles.setMeasurementAppearance({
+  mode: "modern", // "legacy" restores the original presentation
+  requestId: "appearance-1", // optional; generated when omitted
+  timeoutMs: 30_000 // optional; defaults to commandTimeoutMs
+});
+console.log(result.mode, result.requestId);
+```
+
+This uses Canvas's existing `setMeasurementAppearance` command and waits for the
+matching `measurementAppearanceChanged` reply. It switches the viewer-wide
+presentation preset for native annotation controls, measurement badges and SNAP
+feedback. It does not replace annotation records or change their GUIDs, geometry
+or confirmed scales. Continue using `viewer.tools.set(...)` and the existing
+annotation callbacks. Modern stays active across document changes within the
+current viewer; a fresh viewer starts in Legacy.
+
+`viewer.getInfo().capabilities` retains Canvas's advertised capability names.
+This method requires `measurementAppearance`; an older viewer without that
+capability rejects with `CAPABILITY_NOT_SUPPORTED` before sending a command.
+Calls before readiness reject with `VIEWER_NOT_READY`. Canvas failures and
+invalid results reject with `UNKNOWN_COMMAND`, preserving the native error and
+result in the error context. Missing acknowledgements reject with
+`COMMAND_TIMEOUT`; a timeout does not establish the resulting Canvas mode.
+Destroying the viewer rejects pending appearance requests with `VIEWER_NOT_READY`.
+Concurrent calls need distinct request IDs; replies without a matching ID are
+ignored. No network services or runtime dependencies are added by this feature.
+
+For a local interactive example, serve the repository over HTTP and open
+[`examples/measurement-appearance.html`](examples/measurement-appearance.html),
+after `npm run build`. Enter the URL of a Canvas deployment supporting the
+`measurementAppearance` capability. The example sets `parentOrigin` to its own
+origin and leaves Legacy selected until you explicitly switch it. PDF export
+appearance still depends on the matching Canvas/backend deployment and requires
+separate acceptance testing.
+
+### Test Annotation Tools Locally
+
+Run the existing Canvas app on `http://127.0.0.1:4200`, then run this from the SDK
+project:
+
+```sh
+npm run dev:annotations
+```
+
+Open [the local test parent](http://127.0.0.1:5175/examples/annotation-tools/). It
+uses the locally built SDK, not a published npm package, and connects the
+unchanged local Canvas to the real sandbox Rasterex server. Legacy remains the
+default. The included synthetic PDF is uploaded to that server when selected;
+local files you choose are also sent to the configured server.
+
+The parent includes both appearance modes, native annotation tools, scale/SNAP
+controls, creation/selection events, stored record inspection and snapshot
+comparisons. Its command check reports acknowledgements separately from native
+drawing acceptance. Read the [run instructions](examples/annotation-tools/README.md)
+and [actual acceptance results](examples/annotation-tools/ACCEPTANCE.md) before
+using those checks as release evidence. Database storage and PDF export need
+their own matching backend and acceptance. Nothing is published by this command.
+
+### Inspect Measurements and Select Native Vertices
+
+Manually verified in Modern and Legacy; prepared for version 2.2.7.
+After `viewer.ready()` and the document's `fileReady`:
+
+```ts
+const identity = { fileIndex: 0, pageIndex: 0, guid: "<annotation-guid>" };
+const info = await viewer.measurements.getInfo(identity);
+const vertex = await viewer.measurements.getInfo({ ...identity, vertexIndex: 0 });
+await viewer.measurements.selectVertex({ ...identity, vertexIndex: 0 });
+await viewer.measurements.clearVertexSelection();
+```
+
+Inspection requires `measurementInfo`; selection/clear require
+`nativeVertexSelection`. All three methods accept optional `requestId` and
+`timeoutMs`. Indices are zero-based and must refer to the active file/page.
+Inspection does not select, edit or scan. `geometry.available: false` still
+allows metadata/vertex inspection; display its reason. Native points explicitly
+use `coordinateSpace: 'nativeAnnotation'`, not original PDF or iframe coordinates.
+Lengths use geometry.unit and areas use its square. Selection uses existing
+native handles without starting a drag or moving a vertex. Clear releases the
+parent-set vertex state and retains annotation selection. Read-only/locked
+records can be inspected; prohibited selections fail with Canvas's native error.
+
+Unrelated replies are ignored. Invalid inputs/results and native failures use
+`UNKNOWN_COMMAND`, with native error/result details retained in error context.
+Missing capabilities use `CAPABILITY_NOT_SUPPORTED`; readiness/destruction uses
+`VIEWER_NOT_READY`; missing replies use `COMMAND_TIMEOUT`. Timeout does not prove
+whether native selection changed: commands never retry or send automatic clears.
+The existing Canvas source/origin guards remain in force. No new protocol or
+backend is required, and no engine coordinate/rotation limitation is corrected.
+
+Use the local parent's **Measurement / vertex inspection** panel for acceptance.
+See [manual checks](examples/annotation-tools/MEASUREMENT-INSPECTION.md).
 
 ### Synchronize Views
 

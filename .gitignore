@@ -10,7 +10,11 @@ packages/*/dist/
 *.tgz
 
 # Local docs/planning folder not intended for GitHub
-docs/
+docs/*
+!docs/version-changes/
+docs/version-changes/*
+!docs/version-changes/2.2.5.md
+!docs/version-changes/2.2.6.md
 
 # Local example app installs/builds
 react-canvas-test/node_modules/
@@ -33,3 +37,5 @@ Thumbs.db
 .idea/
 
 
+
+!docs/version-changes/2.2.7.md

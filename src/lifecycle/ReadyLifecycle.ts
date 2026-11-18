@@ -6,6 +6,7 @@ import type { ProtocolIncomingMessage } from "../protocol/index.js";
 import type { ViewerReadyOptions } from "../types/index.js";
 
 export interface ReadyCompletion {
+  isActive: () => boolean;
   cleanup: () => void;
   resolve: () => void;
   reject: (error: Error) => void;
@@ -68,6 +69,7 @@ export function createReadyLifecycle(
     };
 
     const completion: ReadyCompletion = {
+      isActive: () => !settled,
       cleanup,
       resolve: () => {
         complete(resolve);

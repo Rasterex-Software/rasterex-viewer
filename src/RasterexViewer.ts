@@ -16,7 +16,6 @@ import { Diagnostics } from "./diagnostics.js";
 import {
   CAPABILITIES,
   PROTOCOL_VERSION,
-  type Capability,
   type ViewerReadyMessage
 } from "./protocol/index.js";
 import { EvaluationService } from "./evaluation/EvaluationService.js";
@@ -42,7 +41,7 @@ import { ClientCompareApi } from "./domains/client-compare/ClientCompareApi.js";
 import { evaluateCompatibility } from "./utils/compatibility.js";
 import { createSdkInstanceId } from "./utils/createSdkInstanceId.js";
 import { deriveOrigin } from "./utils/deriveOrigin.js";
-import { isSandboxViewerUrl } from "./utils/isSandboxViewerUrl.js";
+import { requiresHostedEvaluation } from "./evaluation/requiresHostedEvaluation.js";
 import type {
   RasterexViewerInfo,
   RasterexViewerOptions,
@@ -86,14 +85,14 @@ export class RasterexViewer {
   private canvasSessionId: string | null = null;
   private canvasVersion: string | null = null;
   private buildDate: string | null = null;
-  private capabilities: readonly Capability[] | null = null;
+  private capabilities: readonly string[] | null = null;
   private minimumSdkVersion: string | null = null;
   private compatibility: RasterexViewerInfo["compatibility"] = null;
   constructor(options: RasterexViewerOptions) {
     this.container = options.container;
     this.viewerUrl = options.viewerUrl ?? DEFAULT_VIEWER_URL;
     this.targetOrigin = options.targetOrigin ?? deriveOrigin(this.viewerUrl);
-    this.requiresEvaluation = isSandboxViewerUrl(this.viewerUrl);
+    this.requiresEvaluation = requiresHostedEvaluation(this.viewerUrl, options.evaluation?.internalBypassKey);
     this.iframeTitle = options.iframeTitle ?? DEFAULT_IFRAME_TITLE;
     this.iframeClassName = options.iframeClassName;
     this.iframeAttributes = options.iframeAttributes;
@@ -119,6 +118,7 @@ export class RasterexViewer {
       commandTimeoutMs: this.commandTimeoutMs
     });
     this.measurements = new MeasurementsApi({
+      getCapabilities: () => this.capabilities,
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
@@ -136,6 +136,7 @@ export class RasterexViewer {
     this.styles = new StylesApi({
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
+      getCapabilities: () => this.capabilities,
       commandTimeoutMs: this.commandTimeoutMs
     });
     this.layers = new LayersApi({
@@ -285,7 +286,7 @@ export class RasterexViewer {
     this.readyReject = null;
     this.documents.disconnect(); this.annotations.disconnect(); this.measurements.disconnect();
     this.compare.disconnect(); this.collaboration.disconnect(); this.layers.disconnect();
-    this.blocks.disconnect(); this.viewSync.disconnect(); this.clientCompare.disconnect();
+    this.blocks.disconnect(); this.styles.disconnect(); this.viewSync.disconnect(); this.clientCompare.disconnect();
     this.messagingSession?.destroy();
     this.messagingSession = null;
     this.state = "destroyed";
@@ -358,10 +359,8 @@ export class RasterexViewer {
     this.canvasSessionId = "canvas-session-unreported";
     this.canvasVersion = null;
     this.buildDate = null;
-    this.capabilities = [
-      CAPABILITIES.iframe,
-      CAPABILITIES.documentOpen
-    ];
+    this.capabilities = Object.freeze([...new Set([CAPABILITIES.iframe, CAPABILITIES.documentOpen,
+      ...(this.messagingSession?.canvasCapabilities ?? [])])]);
     this.minimumSdkVersion = null;
     this.compatibility = {
       state: "degraded",
@@ -380,7 +379,7 @@ export class RasterexViewer {
     const evaluation = this.requiresEvaluation ? this.evaluation.initialize() : Promise.resolve();
 
     void evaluation.then(() => {
-      if (this.state !== "handshaking") {
+      if (!completion.isActive() || this.state !== "handshaking") {
         return;
       }
 
@@ -390,7 +389,7 @@ export class RasterexViewer {
         this.completeCanvasBrokerReady(completion);
       }
     }, (error: Error) => {
-      if (this.state !== "handshaking") {
+      if (!completion.isActive() || this.state !== "handshaking") {
         return;
       }
 

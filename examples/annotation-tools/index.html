@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Rasterex · Local annotation tools</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <div>
+        <strong>Annotation tools</strong
+        ><span class="tag">Local SDK build · no npm deployment</span>
+      </div>
+      <form id="connect-form">
+        <label
+          >Canvas URL
+          <input
+            id="canvas-url"
+            type="url"
+            value="http://canvas.localhost:4201/"
+            required
+        /></label>
+        <button id="connect">Connect viewer</button>
+        <label
+          >Appearance
+          <select id="appearance" disabled>
+            <option value="legacy">Legacy (default)</option>
+            <option value="modern">Modern</option>
+          </select></label
+        >
+        <span id="connection-status" role="status">Not connected</span>
+      </form>
+      <p id="document-status">
+        Connect, then open the test PDF. Draw directly inside the viewer.
+      </p>
+    </header>
+    <main>
+      <aside>
+        <fieldset id="ready-controls" disabled>
+          <legend>Document</legend>
+          <button id="sample">Open test PDF</button>
+          <label class="file">Your local file <input id="file" type="file" /></label>
+          <label
+            >Document URL
+            <input
+              id="document-url"
+              type="url"
+              placeholder="URL reachable by the Rasterex server"
+          /></label>
+          <button id="open-url">Open URL</button>
+        </fieldset>
+        <fieldset id="document-controls" disabled>
+          <legend>Native tools</legend>
+          <button id="activation-check">Check commands in both modes</button>
+          <p id="activation-result" role="status">
+            Command checks do not verify drawing gestures.
+          </p>
+          <div id="quick-tools" class="tools"></div>
+          <label
+            >All existing SDK tools
+            <select id="tool"></select
+          ></label>
+          <div class="tools">
+            <button id="activate">Activate tool</button
+            ><button id="select">Select / stop</button>
+          </div>
+          <p id="tool-status">No tool selected</p>
+          <label
+            ><input type="checkbox" id="use-style" /> Apply test style to new
+            annotations</label
+          >
+          <p class="hint">
+            Rose stroke, pale yellow fill, 25% fill, width 3. Legacy measurement tools
+            restore native defaults.
+          </p>
+          <button id="scale">Use test scale 1:100 (mm)</button>
+          <p class="hint">
+            Synthetic test scale, current page only. Not a physical calibration.
+          </p>
+          <label><input type="checkbox" id="snap" /> Native SNAP</label>
+          <details open>
+            <summary>Stored annotation checks</summary>
+            <button id="refresh">Refresh annotations</button>
+            <label
+              >Annotation
+              <select id="annotation">
+                <option value="">None</option>
+              </select></label
+            >
+            <div class="tools">
+              <button id="select-record">Select record</button
+              ><button id="inspect">Read properties</button>
+            </div>
+            <div class="tools">
+              <button id="capture">Capture baseline</button
+              ><button id="compare">Compare baseline</button>
+            </div>
+            <p id="comparison" role="status">
+              Capture a baseline before switching appearance.
+            </p>
+            <pre id="record" aria-label="Stored annotation properties">
+No record inspected</pre
+            >
+          </details>
+        </fieldset>
+        <details id="measurement-panel" open>
+          <summary>Measurement / vertex inspection</summary>
+          <p class="hint">
+            Read saved native measurements after fileReady. Inspection does not select or
+            edit. Vertex numbers below start at 1; API indices start at 0.
+          </p>
+          <fieldset id="measurement-controls" disabled>
+            <button id="measurement-refresh">Refresh measurements</button>
+            <label
+              >Measurement
+              <select id="measurement-guid">
+                <option value="">Choose a measurement</option>
+              </select></label
+            >
+            <label
+              >Vertex number (optional for inspection)
+              <input
+                id="measurement-vertex"
+                type="number"
+                min="1"
+                max="1000"
+                step="1"
+                placeholder="Metadata only"
+            /></label>
+            <div class="tools">
+              <button id="measurement-inspect">Inspect measurement</button
+              ><button id="measurement-select">Select vertex</button
+              ><button id="measurement-clear">Clear vertex selection</button>
+            </div>
+          </fieldset>
+          <p id="measurement-status" role="status">
+            Open a document to inspect measurements.
+          </p>
+          <pre id="measurement-result" aria-label="Measurement inspection result"></pre>
+        </details>
+        <details>
+          <summary>Drawing instructions</summary>
+          <p>
+            Use the native click-click placement for shapes and text in this Canvas build.
+            Polygon/area/path: click points and double-click to finish. Note: click, enter
+            text, save. Check the native creation event after each gesture.
+          </p>
+          <p>
+            Select an annotation to test native move, resize and rotation controls.
+            Changing appearance should preserve existing GUIDs, geometry, scales and
+            styling.
+          </p>
+          <p>
+            A command acknowledgement alone does not prove a drawing gesture succeeded.
+            Watch the creation/selection events and inspect the rendered result.
+          </p>
+        </details>
+      </aside>
+      <section class="drawing" aria-label="Document viewer">
+        <div id="viewer"></div>
+      </section>
+    </main>
+    <details class="events" open>
+      <summary>
+        SDK events <span id="counts">0 created · 0 selected · 0 deleted</span>
+      </summary>
+      <pre id="log" aria-label="SDK event log"></pre>
+    </details>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
