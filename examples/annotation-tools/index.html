@@ -104,6 +104,47 @@ No record inspected</pre
             >
           </details>
         </fieldset>
+        <details id="annotation-import-panel">
+          <summary>Annotation import</summary>
+          <fieldset id="annotation-import-controls" disabled>
+            <label for="annotation-import-source">Input</label>
+            <select id="annotation-import-source">
+              <option value="json">Inline JSON</option>
+              <option value="xml">Paste Rasterex XML (local URL)</option>
+              <option value="url">Rasterex XML URL</option>
+            </select>
+            <label for="annotation-import-data">Annotation data or URL</label>
+            <textarea id="annotation-import-data" rows="5"></textarea>
+            <div class="tools">
+              <button id="annotation-import-sample">Use sample data</button>
+              <button id="annotation-import-snapshot">Copy current records here</button>
+            </div>
+            <label for="annotation-import-mode">Existing annotations</label>
+            <select id="annotation-import-mode">
+              <option value="merge">Merge (skip matching JSON GUIDs)</option>
+              <option value="replace">Merge (replace matching JSON GUIDs)</option>
+              <option value="replaceAll">Replace all annotations</option>
+            </select>
+            <label for="annotation-import-scale">Measurement scales</label>
+            <select id="annotation-import-scale">
+              <option value="currentPage">Use current page scale</option>
+              <option value="preserve">Preserve saved scales</option>
+            </select>
+            <label>
+              <input id="annotation-import-events" type="checkbox" checked />
+              Request creation events
+            </label>
+            <label id="annotation-import-confirm-label" hidden>
+              <input id="annotation-import-confirm" type="checkbox" />
+              Clear all annotations on this test document before importing
+            </label>
+            <button id="annotation-import-run">Import annotations</button>
+          </fieldset>
+          <p id="annotation-import-status" role="status">
+            Open a disposable test document to start.
+          </p>
+          <pre id="annotation-import-result" aria-label="Annotation import result"></pre>
+        </details>
         <details id="measurement-panel" open>
           <summary>Measurement / vertex inspection</summary>
           <p class="hint">

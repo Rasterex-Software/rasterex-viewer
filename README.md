@@ -487,6 +487,42 @@ and [actual acceptance results](examples/annotation-tools/ACCEPTANCE.md) before
 using those checks as release evidence. Database storage and PDF export need
 their own matching backend and acceptance. Nothing is published by this command.
 
+### Import Annotations
+
+After `fileReady`, load a saved JSON snapshot into the active document:
+
+```ts
+const receipt = await viewer.annotations.load({
+  format: "json",
+  data: savedSnapshot,
+  measurementScalePolicy: "preserve"
+});
+console.log(receipt.loaded, receipt.skipped, receipt.total);
+```
+
+JSON accepts a native or flat record, an array, an `{ items }` snapshot, or
+JSON text. The SDK defaults to merging and skipping matching JSON GUIDs.
+Use `replacePolicy: "replace"` to replace matching JSON records in merge
+mode, or `mode: "replaceAll"` to clear the current annotations before loading
+validated inline content. Only use replace-all when the existing records can
+be discarded. Canvas import is not transactional.
+
+Use `format: "xml"` for a Rasterex markup export, or add `source: "url"` for an
+absolute HTTP(S) XML URL that Canvas can reach. XML URLs are merge only. Canvas
+uses native XML loading and does not apply the JSON duplicate policy to XML.
+
+`measurementScalePolicy` defaults to `"currentPage"`. Use `"preserve"` with
+saved native measurement records to retain their valid calibration snapshots.
+`emitCreated` defaults to true and requests Canvas creation callbacks. Treat
+`loaded`, `skipped` and `total` as Canvas-reported counts, since `loaded` may
+include an existing matching GUID. Refresh the annotation list to verify the
+actual records. Keep the intended document active until the import finishes.
+
+A timeout leaves the outcome unknown. Check the records and reconnect the
+viewer before another import. The SDK does not retry automatically. The
+[local annotation import checks](examples/annotation-tools/ANNOTATION-IMPORT.md)
+show how the local parent imports pasted RXML through a temporary URL.
+
 ### Inspect Measurements and Select Native Vertices
 
 Manually verified in Modern and Legacy; prepared for version 2.2.7.

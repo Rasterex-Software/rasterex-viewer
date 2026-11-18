@@ -1,6 +1,6 @@
 {
   "name": "@rasterex/viewer",
-  "version": "2.2.7",
+  "version": "2.2.8",
   "description": "Framework-independent JavaScript and TypeScript SDK for embedding Rasterex Canvas CAD, DWG, DXF, DGN, IFC and PDF viewers. Typed APIs for markup, measurements and drawing comparison, with self-hosted deployment support.",
   "author": {
     "name": "Rasterex Software AS",

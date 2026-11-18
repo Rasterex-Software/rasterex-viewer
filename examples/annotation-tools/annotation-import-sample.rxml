@@ -1,0 +1,129 @@
+<RasterexMarkup>
+  <Header>
+    <FileVersion>C370</FileVersion>
+    <Format>pdfjs</Format>
+    <Scale>1.0000</Scale>
+    <OrigoX>0.0000</OrigoX>
+    <OrigoY>0.0000</OrigoY>
+    <DirectionY>1</DirectionY>
+    <DirectionX>1</DirectionX>
+  </Header>
+  <Users>
+    <User>
+      <ID>sdk-local-annotation-test</ID>
+      <Name>SDK local test</Name>
+      <Color>#a52a2a</Color>
+      <Layer>5</Layer>
+    </User>
+  </Users>
+  <Scales>
+    <ScaleItem>
+      <Value>1:1000</Value>
+      <Label>1 Millimeter : 1 Meter</Label>
+      <Metric>0</Metric>
+      <MetricUnit>Meter</MetricUnit>
+      <DimPrecision>2</DimPrecision>
+      <IsSelected>false</IsSelected>
+    </ScaleItem>
+    <ScaleItem>
+      <Value>1:93.84</Value>
+      <Label>1 Millimeter : 0.09 Meter</Label>
+      <Metric>0</Metric>
+      <MetricUnit>Meter</MetricUnit>
+      <DimPrecision>2</DimPrecision>
+      <IsSelected>false</IsSelected>
+    </ScaleItem>
+    <ScaleItem>
+      <Value>1:0.01</Value>
+      <Label>1 Millimeter : 0.01 Millimeter</Label>
+      <Metric>0</Metric>
+      <MetricUnit>Millimeter</MetricUnit>
+      <DimPrecision>2</DimPrecision>
+      <IsSelected>false</IsSelected>
+    </ScaleItem>
+    <ScaleItem>
+      <Value>1:46.87</Value>
+      <Label>1 Millimeter : 0.05 Meter</Label>
+      <Metric>0</Metric>
+      <MetricUnit>Meter</MetricUnit>
+      <DimPrecision>2</DimPrecision>
+      <IsSelected>true</IsSelected>
+    </ScaleItem>
+  </Scales>
+  <Entities>
+    <Entity ID="2">
+      <UniqueID>85B7B9C1-5024-4F05-BD1A-A1FC38003D11</UniqueID>
+      <Type>8</Type>
+      <Subtype>0</Subtype>
+      <Alternative>1</Alternative>
+      <Redaction>0</Redaction>
+      <Layer>5</Layer>
+      <Rotation>0</Rotation>
+      <TextRotation>0</TextRotation>
+      <PageRotation>0</PageRotation>
+      <FileName>annotation-import-sample.pdf</FileName>
+      <Layout>Default</Layout>
+      <View>0</View>
+      <ViewName>Page 1</ViewName>
+      <Handle>2</Handle>
+      <FillColor>rgba(165,42,42,0.35)</FillColor>
+      <LineColor>rgba(0,0,128,1)</LineColor>
+      <TextColor>rgba(165,42,42,1)</TextColor>
+      <Transparency>35</Transparency>
+      <Consolidated>0</Consolidated>
+      <HaveLink>0</HaveLink>
+      <HaveLeader>0</HaveLeader>
+      <Hole>1</Hole>
+      <FixedScale>0</FixedScale>
+      <LineStyleScale>0.6413301662707839</LineStyleScale>
+      <FixedScaleFactor>3.69277591349739</FixedScaleFactor>
+      <LinkURL />
+      <Font facename="Helvetica" height="4.8096839273705445" bold="0" italic="0" />
+      <Text>.</Text>
+      <Status>none</Status>
+      <SmallText>.</SmallText>
+      <DimText>58.12 m²</DimText>
+      <CustomLabelOn>0</CustomLabelOn>
+      <CustomLabelText>.</CustomLabelText>
+      <TextWidth>0</TextWidth>
+      <Signature>sdk-local-annotation-test</Signature>
+      <Name>SDK local test</Name>
+      <TimeStamp>1752682088075</TimeStamp>
+      <Scaling>0.6237416107382551</Scaling>
+      <LoadScaling>0.6237416107382551</LoadScaling>
+      <Printscale>1</Printscale>
+      <Xoffset>-111.33703094634721</Xoffset>
+      <Yoffset>-207.4917394909198</Yoffset>
+      <LineWidth>1.6869247113082912</LineWidth>
+      <LineWidthSegment>1.6869247113082912</LineWidthSegment>
+      <ArrowSize>20</ArrowSize>
+      <LineStyle>0</LineStyle>
+      <MainImageScaling>1</MainImageScaling>
+      <MainImageOffsetX>0.00000000</MainImageOffsetX>
+      <MainImageOffsetY>0.00000000</MainImageOffsetY>
+      <DocScale>1.5807858221476516</DocScale>
+      <DocOffsetX>-176</DocOffsetX>
+      <DocOffsetY>-328</DocOffsetY>
+      <HasScale>false</HasScale>
+      <Measurescale>46.87</Measurescale>
+      <ScaleLabel>1 Millimeter : 0.05 Meter</ScaleLabel>
+      <Unitofmeasure>1</Unitofmeasure>
+      <SubmeasureUnit>4</SubmeasureUnit>
+      <Unitlabel>m</Unitlabel>
+      <AreaUnitlabel>m²</AreaUnitlabel>
+      <Unitscale>1000</Unitscale>
+      <ScaleValue>1:46.87</ScaleValue>
+      <Ndimprecision>2</Ndimprecision>
+      <Points>
+        <Point x="158.7817884518929" y="330.8481090053386" />
+        <Point x="158.19372003154888" y="711.2554291623578" />
+        <Point x="757.2754159984568" y="716.1861427094104" />
+        <Point x="759.7407727719832" y="329.1251292657704" />
+      </Points>
+      <LabelOffsetX>0</LabelOffsetX>
+      <LabelOffsetY>0</LabelOffsetY>
+      <LabelColor>rgba(255,255,255,1)</LabelColor>
+      <Rect x="158.19372003154888" y="329.1251292657704" w="759.7407727719832" h="716.1861427094104" />
+    </Entity>
+  </Entities>
+</RasterexMarkup>

@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer as createViteServer } from "vite";
+import { createLocalRxmlStore } from "./local-rxml.mjs";
 import { connectionOverlay, readUploadPaths } from "./configuration.mjs";
 
 const root = fileURLToPath(new URL("../../", import.meta.url));
@@ -15,6 +16,7 @@ const canvasPort = Number(process.env.CANVAS_PROXY_PORT || 4201);
 const parentPort = Number(process.env.PARENT_PORT || 5175);
 // This standard localhost subdomain avoids Canvas's exact-host C: override.
 const origin = `http://canvas.localhost:${canvasPort}`;
+const localRxml = createLocalRxmlStore(origin, `http://127.0.0.1:${parentPort}`);
 for (const url of [canvas, rasterex, api]) {
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) {
     throw new Error("Development targets must be HTTP(S) URLs without credentials.");
@@ -50,6 +52,9 @@ function forward(request, response, target) {
 
 const proxy = http.createServer(async (request, response) => {
   const url = new URL(request.url || "/", origin);
+  if (localRxml.serve(request, response, url.pathname)) {
+    return;
+  }
   if (url.pathname === "/assets/scripts/rxconfig.js") {
     try {
       const upstream = await fetch(new URL(url.pathname, canvas));
@@ -92,6 +97,12 @@ try {
   vite = await createViteServer({
     configFile: false, root,
     cacheDir: resolve(tmpdir(), "rasterex-annotation-vite-cache"),
+    plugins: [{
+      name: "local-rxml-import",
+      configureServer(server) {
+        server.middlewares.use(localRxml.store);
+      }
+    }],
     server: { host: "127.0.0.1", port: parentPort, strictPort: true }
   });
   await vite.listen();

@@ -1,3 +1,5 @@
+import { AnnotationImport } from "./AnnotationImport.js";
+import type { LoadAnnotationsOptions, LoadAnnotationsResult } from "./importTypes.js";
 import { ERROR_CODES } from "../../protocol/index.js";
 
 import {
@@ -38,8 +40,10 @@ import type {
   CanvasSaveAnnotationsCompletePayload
 } from "./internalTypes.js";
 export type * from "./types.js";
+export type * from "./importTypes.js";
 
 export class AnnotationsApi {
+  private readonly annotationImport: AnnotationImport;
   private readonly getBroker: () => CanvasMessageBroker | null;
   private readonly getIsReady: () => boolean;
   private readonly commandTimeoutMs: number;
@@ -48,6 +52,7 @@ export class AnnotationsApi {
   private brokerCleanups: CanvasMessageUnsubscribe[] = [];
 
   constructor(options: AnnotationsApiOptions) {
+    this.annotationImport = new AnnotationImport(options);
     this.getBroker = options.getBroker;
     this.getIsReady = options.getIsReady;
     this.commandTimeoutMs = options.commandTimeoutMs;
@@ -85,6 +90,7 @@ export class AnnotationsApi {
   }
 
   disconnect(): void {
+    this.annotationImport.disconnect();
     for (const cleanup of this.brokerCleanups) {
       cleanup();
     }
@@ -128,6 +134,12 @@ export class AnnotationsApi {
       guid: options.guid,
       requestId: options.requestId ?? createRequestId()
     });
+  }
+
+  /** Import annotations into the current document after fileReady. */
+  load(options: LoadAnnotationsOptions): Promise<LoadAnnotationsResult> {
+    this.connect();
+    return this.annotationImport.load(options);
   }
 
   save(options: SaveAnnotationsOptions = {}): Promise<SaveAnnotationsResult> {
