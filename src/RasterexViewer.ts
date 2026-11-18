@@ -118,6 +118,7 @@ export class RasterexViewer {
       commandTimeoutMs: this.commandTimeoutMs
     });
     this.measurements = new MeasurementsApi({
+      getCapabilities: () => this.capabilities,
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs

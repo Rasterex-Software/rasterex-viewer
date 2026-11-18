@@ -340,3 +340,5 @@ export type {
   ViewerReadyOptions,
   ViewerState
 } from "./types/index.js";
+
+export type * from './domains/measurements/inspectionTypes.js';

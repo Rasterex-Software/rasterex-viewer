@@ -37,3 +37,5 @@ Thumbs.db
 .idea/
 
 
+
+!docs/version-changes/2.2.7.md

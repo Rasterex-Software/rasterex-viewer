@@ -487,6 +487,41 @@ and [actual acceptance results](examples/annotation-tools/ACCEPTANCE.md) before
 using those checks as release evidence. Database storage and PDF export need
 their own matching backend and acceptance. Nothing is published by this command.
 
+### Inspect Measurements and Select Native Vertices
+
+Manually verified in Modern and Legacy; prepared for version 2.2.7.
+After `viewer.ready()` and the document's `fileReady`:
+
+```ts
+const identity = { fileIndex: 0, pageIndex: 0, guid: "<annotation-guid>" };
+const info = await viewer.measurements.getInfo(identity);
+const vertex = await viewer.measurements.getInfo({ ...identity, vertexIndex: 0 });
+await viewer.measurements.selectVertex({ ...identity, vertexIndex: 0 });
+await viewer.measurements.clearVertexSelection();
+```
+
+Inspection requires `measurementInfo`; selection/clear require
+`nativeVertexSelection`. All three methods accept optional `requestId` and
+`timeoutMs`. Indices are zero-based and must refer to the active file/page.
+Inspection does not select, edit or scan. `geometry.available: false` still
+allows metadata/vertex inspection; display its reason. Native points explicitly
+use `coordinateSpace: 'nativeAnnotation'`, not original PDF or iframe coordinates.
+Lengths use geometry.unit and areas use its square. Selection uses existing
+native handles without starting a drag or moving a vertex. Clear releases the
+parent-set vertex state and retains annotation selection. Read-only/locked
+records can be inspected; prohibited selections fail with Canvas's native error.
+
+Unrelated replies are ignored. Invalid inputs/results and native failures use
+`UNKNOWN_COMMAND`, with native error/result details retained in error context.
+Missing capabilities use `CAPABILITY_NOT_SUPPORTED`; readiness/destruction uses
+`VIEWER_NOT_READY`; missing replies use `COMMAND_TIMEOUT`. Timeout does not prove
+whether native selection changed: commands never retry or send automatic clears.
+The existing Canvas source/origin guards remain in force. No new protocol or
+backend is required, and no engine coordinate/rotation limitation is corrected.
+
+Use the local parent's **Measurement / vertex inspection** panel for acceptance.
+See [manual checks](examples/annotation-tools/MEASUREMENT-INSPECTION.md).
+
 ### Synchronize Views
 
 Each viewer reports its own pan and zoom changes. After both viewers are ready

@@ -73,3 +73,9 @@ full tool selector for extra document-specific acceptance.
 The included PDF is copied unchanged from Canvas's synthetic
 `tests/fixtures/pdf-measurement-coordinates.pdf` fixture; no real customer drawing
 is included. This sample does not address the documented viewer-rotation issue.
+
+## Measurement inspection and vertex selection
+
+The parent now has a Measurement / vertex inspection disclosure. Refresh native
+measurements, inspect metadata or a chosen vertex, then explicitly select/clear
+its native handle. See [acceptance steps](MEASUREMENT-INSPECTION.md).
