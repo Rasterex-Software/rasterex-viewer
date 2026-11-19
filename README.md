@@ -487,6 +487,44 @@ and [actual acceptance results](examples/annotation-tools/ACCEPTANCE.md) before
 using those checks as release evidence. Database storage and PDF export need
 their own matching backend and acceptance. Nothing is published by this command.
 
+### Edit Annotations and Manage Count Groups
+
+After `fileReady`, use `viewer.tools.getState()` to read Canvas's tool,
+navigation and SNAP state. Use `viewer.annotations.undo()`, `redo()` and
+`deleteSelected()` to edit the active document. Delete selected uses Canvas's
+current editable selection. Canvas may acknowledge an edit without changing a
+record. Check the refreshed annotation list or the annotation events to verify
+the result. Use `viewer.annotations.delete({ guid })` to address a specific
+annotation through the existing API.
+
+```ts
+const count = viewer.annotations.count;
+await count.configure({ visibility: "always", content: "nameValue", name: "Fixtures" });
+await viewer.tools.set({ action: "COUNT", group: "measurement", enabled: true });
+// The user places markers inside Canvas.
+await count.finish();
+const { items } = await count.getItems(groupGuid);
+if (items[0]) {
+  await count.setItemInfo(groupGuid, items[0].id, { reference: "A-01", checked: true });
+}
+```
+
+`count.insertPoint()` arms one native insertion on the selected Count.
+`count.setPointMode({ enabled: true, guid })` enables repeated insertion on a
+group. Canvas requires an editable selection, so use a Count owned by the
+current user and switch to selection mode before inserting. Stop it with `count.setPointMode({ enabled: false })`. The original
+`annotations.setCountPointMode()` remains available. `count.onFinished(handler)`
+subscribes to an uncorrelated Finish event from Canvas and returns an unsubscribe
+function. The SDK's `count.finish()` resolves through its own request reply.
+
+Count items use native annotation coordinates and Canvas-assigned IDs.
+`setItemInfo()` replaces the marker's flat metadata object. Use the latest item
+list to select an ID. Editing and tool state require `parentTools`, Count
+configure/finish require `countWorkflow`, and item APIs require `countItemInfo`.
+Commands accept optional request IDs and timeouts. If an edit times out, refresh
+the records before deciding whether to retry. See the [local editing and Count
+checklist](examples/annotation-tools/EDITING-COUNT.md).
+
 ### Import Annotations
 
 After `fileReady`, load a saved JSON snapshot into the active document:

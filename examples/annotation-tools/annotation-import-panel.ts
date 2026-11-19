@@ -4,17 +4,31 @@ import type {
   LoadAnnotationsOptions,
   RasterexViewer
 } from "../../dist/index.js";
+import { testUser } from "./test-user.js";
+import countSampleXml from "./count-import-sample.rxml?raw";
 import sampleXml from "./annotation-import-sample.rxml?raw";
 
 const sampleJson = {
-  UniqueID: "6F339054-E593-45C0-9249-44E5E451E994",
-  Type: 3,
-  Subtype: 0,
-  LineWidth: 3,
-  FileName: "annotation-import-sample.pdf",
-  ViewName: "Page 1",
-  Rect: { x: 125, y: 160, w: 250, h: 245 },
-  LineColor: "rgba(225,29,72,1)"
+  operation: { created: true },
+  Entity: {
+    UniqueID: "6F339054-E593-45C0-9249-44E5E451E994",
+    Type: 3,
+    Subtype: 0,
+    Alternative: 0,
+    Layer: 5,
+    Signature: testUser.username,
+    Name: testUser.displayName,
+    LineWidth: 3,
+    Font: { Font: { facename: "Helvetica", height: 16, bold: 0, italic: 0 } },
+    Scaling: 1,
+    LoadScaling: 1,
+    DocScale: 1,
+    FileName: "annotation-import-sample.pdf",
+    View: 0,
+    ViewName: "Page 1",
+    Rect: { x: 125, y: 160, w: 250, h: 245 },
+    LineColor: "rgba(225,29,72,1)"
+  }
 };
 
 async function stagePastedRxml(text: string, viewerUrl: string): Promise<string> {
@@ -105,6 +119,13 @@ export function createAnnotationImportPanel({
       data.value = source.value === "xml" ? sampleXml : JSON.stringify(sampleJson, null, 2);
     }
     confirm.checked = false;
+  });
+
+  element("annotation-import-count-sample").addEventListener("click", () => {
+    source.value = "xml";
+    data.value = countSampleXml;
+    updateOptions();
+    status.textContent = "Editable Count sample loaded into the input. Choose Import annotations.";
   });
 
   element("annotation-import-snapshot").addEventListener("click", () => {

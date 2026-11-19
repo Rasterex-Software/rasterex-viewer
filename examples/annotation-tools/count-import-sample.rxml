@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RasterexMarkup>
+    <Header>
+        <FileVersion>C370</FileVersion>
+        <Format>pdfjs</Format>
+        <Scale>1.0000</Scale>
+        <OrigoX>0.0000</OrigoX>
+        <OrigoY>0.0000</OrigoY>
+        <DirectionY>1</DirectionY>
+        <DirectionX>1</DirectionX>
+    </Header>
+    <Users>
+        <User>
+            <ID>sdk-local-annotation-test</ID>
+            <Name>SDK local test</Name>
+            <Color>#a52a2a</Color>
+            <Layer>5</Layer>
+        </User>
+    </Users>
+    <Scales />
+    <Entities>
+        <Entity ID="1">
+            <UniqueID>B2875EFD-8F03-46D9-B0FA-7286DA6E59E3</UniqueID>
+            <Type>13</Type>
+            <Subtype>0</Subtype>
+            <Alternative>0</Alternative>
+            <Redaction>0</Redaction>
+            <Layer>5</Layer>
+            <Rotation>0</Rotation>
+            <TextRotation>0</TextRotation>
+            <PageRotation>0</PageRotation>
+            <FileName>annotation-import-sample.pdf</FileName>
+            <Layout>Default</Layout>
+            <View>0</View>
+            <ViewName>Page 1</ViewName>
+            <Handle>1</Handle>
+            <FillColor>rgba(255,0,0,1)</FillColor>
+            <LineColor>rgba(255,0,0,1)</LineColor>
+            <TextColor>rgba(165,42,42,1)</TextColor>
+            <Transparency>100</Transparency>
+            <Consolidated>0</Consolidated>
+            <HaveLink>0</HaveLink>
+            <HaveLeader>0</HaveLeader>
+            <FixedScale>1</FixedScale>
+            <LineStyleScale>1.3636363636363635</LineStyleScale>
+            <FixedScaleFactor>0.9076797385620916</FixedScaleFactor>
+            <LinkURL></LinkURL>
+            <Font facename="Helvetica" heightpx="24" height="17.6" bold="0" italic="0" />
+            <Text>.</Text>
+            <Status>none</Status>
+            <SmallText>.</SmallText>
+            <DimText>6</DimText>
+            <CustomLabelOn>0</CustomLabelOn>
+            <CustomLabelText>.</CustomLabelText>
+            <TextWidth>0</TextWidth>
+            <Signature>sdk-local-annotation-test</Signature>
+            <Name>SDK local test</Name>
+            <TimeStamp>1771248338309</TimeStamp>
+            <Scaling>1.2377450980392157</Scaling>
+            <LoadScaling>1.2377450980392157</LoadScaling>
+            <Printscale>1</Printscale>
+            <Xoffset>0.20198020102954145</Xoffset>
+            <Yoffset>-37.164355665150254</Yoffset>
+            <LineWidthPx>1</LineWidthPx>
+            <LineWidth>0.7333333333333334</LineWidth>
+            <LineWidthSegment>2.9333333333333336</LineWidthSegment>
+            <ArrowSize>20</ArrowSize>
+            <LineStyle>0</LineStyle>
+            <MainImageScaling>1</MainImageScaling>
+            <MainImageOffsetX>0.00000000</MainImageOffsetX>
+            <MainImageOffsetY>0.00000000</MainImageOffsetY>
+            <DocScale>0.9901960784313726</DocScale>
+            <DocOffsetX>0.20000000298023224</DocOffsetX>
+            <DocOffsetY>-36.79999923706055</DocOffsetY>
+            <HasScale>false</HasScale>
+            <Measurescale>1</Measurescale>
+            <ScaleLabel>Unscaled</ScaleLabel>
+            <Unitofmeasure>1</Unitofmeasure>
+            <SubmeasureUnit>1</SubmeasureUnit>
+            <Unitlabel>mm</Unitlabel>
+            <AreaUnitlabel>mm²</AreaUnitlabel>
+            <Unitscale>1</Unitscale>
+            <ScaleValue>1:1</ScaleValue>
+            <Ndimprecision>3</Ndimprecision>
+            <outerRadius>8.8</outerRadius>
+            <innerRadius>3.520000000000001</innerRadius>
+            <Points>
+                <Point x="112.90693069005957" y="259.34257348693245" />
+                <Point x="129.0653465316437" y="229.04554378396213" />
+                <Point x="145.22376237322788" y="255.30296952653637" />
+                <Point x="123.00594059104967" y="287.6198012097047" />
+                <Point x="148.2534653435249" y="279.54059328891265" />
+                <Point x="152.29306930392096" y="231.06534576416016" />
+            </Points>
+            <Rect x="112.90693069005957" y="229.04554378396213" w="113.10891089108911"
+                h="250.45544554455444" />
+        </Entity>
+    </Entities>
+</RasterexMarkup>
