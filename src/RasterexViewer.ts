@@ -107,22 +107,15 @@ export class RasterexViewer {
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready", commandTimeoutMs: this.commandTimeoutMs
     });
-    this.annotations = new AnnotationsApi({
-      getBroker: () => this.getCanvasBroker(),
-      getIsReady: () => this.state === "ready",
-      commandTimeoutMs: this.commandTimeoutMs
-    });
-    this.tools = new ToolsApi({
-      getBroker: () => this.getCanvasBroker(),
-      getIsReady: () => this.state === "ready",
-      commandTimeoutMs: this.commandTimeoutMs
-    });
-    this.measurements = new MeasurementsApi({
+    const parentToolAccess = {
       getCapabilities: () => this.capabilities,
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
       commandTimeoutMs: this.commandTimeoutMs
-    });
+    };
+    this.annotations = new AnnotationsApi(parentToolAccess);
+    this.tools = new ToolsApi(parentToolAccess);
+    this.measurements = new MeasurementsApi(parentToolAccess);
     this.compare = new CompareApi({
       getBroker: () => this.getCanvasBroker(),
       getIsReady: () => this.state === "ready",
@@ -284,7 +277,10 @@ export class RasterexViewer {
     this.readyPromise = null;
     this.readyCleanup = null;
     this.readyReject = null;
-    this.documents.disconnect(); this.annotations.disconnect(); this.measurements.disconnect();
+    this.documents.disconnect();
+    this.annotations.disconnect();
+    this.tools.disconnect();
+    this.measurements.disconnect();
     this.compare.disconnect(); this.collaboration.disconnect(); this.layers.disconnect();
     this.blocks.disconnect(); this.styles.disconnect(); this.viewSync.disconnect(); this.clientCompare.disconnect();
     this.messagingSession?.destroy();

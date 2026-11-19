@@ -235,6 +235,7 @@ export type ToolsToolbarEventHandler<TEventName extends ToolsToolbarEventName> =
 export type ToolsEventUnsubscribe = DomainEventUnsubscribe;
 
 export interface ToolsApiOptions {
+  getCapabilities?: () => readonly string[] | null;
   getBroker: () => CanvasMessageBroker | null;
   getIsReady: () => boolean;
   commandTimeoutMs: number;

@@ -214,3 +214,14 @@ pre {
   max-height: 200px;
   overflow: auto;
 }
+
+#editing-count-panel textarea,
+#editing-count-panel select,
+#editing-count-panel input:not([type="checkbox"]) {
+  width: 100%;
+}
+
+#editing-count-result {
+  max-height: 240px;
+  overflow: auto;
+}

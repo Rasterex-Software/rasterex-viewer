@@ -104,6 +104,72 @@ No record inspected</pre
             >
           </details>
         </fieldset>
+        <details id="editing-count-panel">
+          <summary>Editing and Count</summary>
+          <fieldset id="editing-controls" disabled>
+            <legend>Editing</legend>
+            <p>Choose a record under Stored annotation checks before deleting.</p>
+            <div class="tools">
+              <button id="edit-state">Read tool state</button>
+              <button id="edit-delete-selected">Delete selected</button>
+              <button id="edit-undo">Undo</button>
+              <button id="edit-redo">Redo</button>
+            </div>
+          </fieldset>
+          <fieldset id="count-workflow-controls" disabled>
+            <legend>Count</legend>
+            <label>Group name <input id="count-name" maxlength="160" /></label>
+            <label>Marker prefix <input id="count-marker-name" maxlength="160" /></label>
+            <label>Marker symbol <input id="count-symbol" /></label>
+            <label><input id="count-numbered" type="checkbox" /> Number markers</label>
+            <label
+              >Group badge visibility
+              <select id="count-visibility">
+                <option value="always">Always</option>
+                <option value="selected">When selected</option>
+                <option value="hidden">Hidden</option>
+              </select>
+            </label>
+            <label
+              >Group badge content
+              <select id="count-content">
+                <option value="nameValue">Name and value</option>
+                <option value="value">Value</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+            <div class="tools">
+              <button id="count-start">Configure and start Count</button>
+              <button id="count-finish">Finish Count</button>
+              <button id="count-refresh">Refresh Count groups</button>
+            </div>
+            <label
+              >Saved Count group
+              <select id="count-group"></select
+            ></label>
+            <div class="tools">
+              <button id="count-insert">Insert one marker</button>
+              <button id="count-enable-point-mode">Start point mode</button>
+              <button id="count-disable-point-mode">Stop point mode</button>
+              <button id="count-read-items">Read markers</button>
+            </div>
+            <label
+              >Marker
+              <select id="count-marker"></select
+            ></label>
+            <label
+              >Marker information (JSON)
+              <textarea
+                id="count-metadata"
+                rows="4"
+                placeholder='{"reference":"A-01"}'
+              ></textarea>
+            </label>
+            <button id="count-write-item">Save marker information</button>
+          </fieldset>
+          <p id="editing-count-status" role="status"></p>
+          <pre id="editing-count-result" aria-label="Editing and Count result"></pre>
+        </details>
         <details id="annotation-import-panel">
           <summary>Annotation import</summary>
           <fieldset id="annotation-import-controls" disabled>
@@ -117,6 +183,7 @@ No record inspected</pre
             <textarea id="annotation-import-data" rows="5"></textarea>
             <div class="tools">
               <button id="annotation-import-sample">Use sample data</button>
+            <button id="annotation-import-count-sample">Use editable Count sample</button>
               <button id="annotation-import-snapshot">Copy current records here</button>
             </div>
             <label for="annotation-import-mode">Existing annotations</label>

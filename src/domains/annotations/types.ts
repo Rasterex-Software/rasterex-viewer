@@ -294,6 +294,7 @@ export type AnnotationEventHandler<TEventName extends AnnotationEventName> =
 export type AnnotationEventUnsubscribe = DomainEventUnsubscribe;
 
 export interface AnnotationsApiOptions {
+  getCapabilities?: () => readonly string[] | null;
   getBroker: () => CanvasMessageBroker | null;
   getIsReady: () => boolean;
   commandTimeoutMs: number;

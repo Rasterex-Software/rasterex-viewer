@@ -1,3 +1,8 @@
+import { CountApi } from "./CountApi.js";
+import { ParentCommands } from "../canvas/ParentCommands.js";
+import type { ParentCommandOptions } from "../canvas/ParentCommands.js";
+import { validToolState } from "../canvas/parentToolState.js";
+import type { AnnotationEditAction, AnnotationEditResult } from "./editingCountTypes.js";
 import { AnnotationImport } from "./AnnotationImport.js";
 import type { LoadAnnotationsOptions, LoadAnnotationsResult } from "./importTypes.js";
 import { ERROR_CODES } from "../../protocol/index.js";
@@ -43,6 +48,8 @@ export type * from "./types.js";
 export type * from "./importTypes.js";
 
 export class AnnotationsApi {
+  readonly count: CountApi;
+  private readonly parentCommands: ParentCommands;
   private readonly annotationImport: AnnotationImport;
   private readonly getBroker: () => CanvasMessageBroker | null;
   private readonly getIsReady: () => boolean;
@@ -52,6 +59,8 @@ export class AnnotationsApi {
   private brokerCleanups: CanvasMessageUnsubscribe[] = [];
 
   constructor(options: AnnotationsApiOptions) {
+    this.parentCommands = new ParentCommands(options, "viewer.annotations");
+    this.count = new CountApi(this.parentCommands, options.getBroker);
     this.annotationImport = new AnnotationImport(options);
     this.getBroker = options.getBroker;
     this.getIsReady = options.getIsReady;
@@ -67,6 +76,7 @@ export class AnnotationsApi {
 
     this.disconnect();
     this.broker = broker;
+    this.count.connect();
     this.brokerCleanups = [
       broker.on<CanvasAnnotationPayload>("annotationCreated", (message) => {
         this.emitAnnotation("created", message, "normalized");
@@ -91,6 +101,8 @@ export class AnnotationsApi {
 
   disconnect(): void {
     this.annotationImport.disconnect();
+    this.parentCommands.disconnect();
+    this.count.disconnect();
     for (const cleanup of this.brokerCleanups) {
       cleanup();
     }
@@ -125,6 +137,27 @@ export class AnnotationsApi {
     broker.send("deleteAnnotation", {
       uniqueId: options.uniqueId ?? options.guid
     });
+  }
+
+  undo(options: ParentCommandOptions = {}): Promise<AnnotationEditResult> {
+    return this.edit("undo", options);
+  }
+
+  redo(options: ParentCommandOptions = {}): Promise<AnnotationEditResult> {
+    return this.edit("redo", options);
+  }
+
+  deleteSelected(options: ParentCommandOptions = {}): Promise<AnnotationEditResult> {
+    return this.edit("deleteSelected", options);
+  }
+
+  private edit(action: AnnotationEditAction, options: ParentCommandOptions): Promise<AnnotationEditResult> {
+    return this.parentCommands.request(
+      { type: "editAnnotations", reply: "annotationEditResult", capability: "parentTools" },
+      { action },
+      options,
+      (result) => validToolState(result) && result.action === action
+    );
   }
 
   setCountPointMode(options: CountPointModeOptions): void {

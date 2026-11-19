@@ -1,3 +1,5 @@
+import { testUser } from "./test-user.js";
+import { createEditingCountPanel } from "./editing-count-panel.js";
 import { createAnnotationImportPanel } from "./annotation-import-panel.js";
 import { createMeasurementInspector } from "./measurement-inspector.js";
 import { createViewer, SDK_VERSION } from "../../dist/index.js";
@@ -60,6 +62,16 @@ const annotationImportPanel = createAnnotationImportPanel({
   refresh,
   log
 });
+
+const editingCountPanel = createEditingCountPanel({
+  getViewer: () => viewer,
+  getRecords: () => records,
+  getSelectedGuid: () => annotationSelect.value,
+  run,
+  refresh,
+  log
+});
+editingCountPanel.reset();
 
 const tools: Array<[ToolAction, string, ToolGroup]> = [
   ["SHAPE_RECTANGLE", "Rectangle", "drawing"],
@@ -127,6 +139,7 @@ function controls() {
   element<HTMLButtonElement>("connect").disabled = busy;
   measurementInspector.controls(busy);
   annotationImportPanel.controls(busy || !documentReady);
+  editingCountPanel.controls(busy || !documentReady);
 }
 
 async function run(operation: () => unknown | Promise<unknown>) {
@@ -180,6 +193,7 @@ async function refresh() {
   if (records.some((item) => guid(item) === selected)) {
     annotationSelect.value = selected;
   }
+  editingCountPanel.setRecords(records);
   log("annotations.snapshot", { count: records.length });
 }
 
@@ -223,10 +237,12 @@ function geometrySnapshot() {
 async function connect() {
   measurementInspector.reset();
   annotationImportPanel.resetResult();
+  editingCountPanel.reset();
   const token = ++generation;
   viewer?.destroy();
   ready = false;
   documentReady = false;
+  docStatus.textContent = "Open a test document after connecting.";
   baseline = undefined;
   mode = "legacy";
   appearance.value = mode;
@@ -245,6 +261,11 @@ async function connect() {
     commandTimeoutMs: 150000
   });
   const current = viewer;
+  current.annotations.count.onFinished(() => {
+    if (generation === token) {
+      editingCountPanel.finished();
+    }
+  });
   current.documents.on("fileReady", (payload) => {
     if (generation !== token) {
       return;
@@ -254,6 +275,7 @@ async function connect() {
     pageIndex = 0;
     documentReady = true;
     annotationImportPanel.resetResult();
+    editingCountPanel.reset();
     docStatus.textContent = `Document ready: ${payload.fileName ?? "file"} · file ${fileIndex}, page ${pageIndex + 1}`;
     log("fileReady", payload);
     controls();
@@ -288,6 +310,7 @@ async function connect() {
       baseline = undefined;
       measurementInspector.reset();
       annotationImportPanel.resetResult();
+      editingCountPanel.reset();
     }
   });
   current.documents.on("fileLoadFailed", (payload) => {
@@ -331,10 +354,7 @@ async function connect() {
     return;
   }
   ready = true;
-  const user = await current.collaboration.setUser({
-    username: "sdk-local-annotation-test",
-    displayName: "SDK local test"
-  });
+  const user = await current.collaboration.setUser(testUser);
 
   if (!user.success) {
     throw new Error(user.reason || "Could not set the local test user");

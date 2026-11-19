@@ -1,3 +1,7 @@
+import { ParentCommands } from "../canvas/ParentCommands.js";
+import type { ParentCommandOptions } from "../canvas/ParentCommands.js";
+import { validToolState } from "../canvas/parentToolState.js";
+import type { ParentToolStateResult } from "../annotations/editingCountTypes.js";
 import {
   sendCanvasCommandWithResult,
   sendCanvasFireAndForget,
@@ -25,11 +29,13 @@ export class ToolsApi {
   readonly symbols: ToolsSymbolsApi;
   readonly toolbar: ToolsToolbarApi;
 
+  private readonly parentCommands: ParentCommands;
   private readonly getBroker: () => CanvasMessageBroker | null;
   private readonly getIsReady: () => boolean;
   private readonly commandTimeoutMs: number;
 
   constructor(options: ToolsApiOptions) {
+    this.parentCommands = new ParentCommands(options, "viewer.tools");
     this.getBroker = options.getBroker;
     this.getIsReady = options.getIsReady;
     this.commandTimeoutMs = options.commandTimeoutMs;
@@ -38,6 +44,17 @@ export class ToolsApi {
     this.stamps = new ToolsStampsApi(options);
     this.symbols = new ToolsSymbolsApi(options);
     this.toolbar = new ToolsToolbarApi(options);
+  }
+
+  getState(options: ParentCommandOptions = {}): Promise<ParentToolStateResult> {
+    return this.parentCommands.request(
+      { type: "getParentToolState", reply: "parentToolState", capability: "parentTools" },
+      {}, options, validToolState
+    );
+  }
+
+  disconnect(): void {
+    this.parentCommands.disconnect();
   }
 
   set(options: ToolSetOptions): Promise<ToolControlResult> {

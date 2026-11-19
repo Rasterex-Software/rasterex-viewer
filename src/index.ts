@@ -348,3 +348,6 @@ export type {
 } from "./types/index.js";
 
 export type * from './domains/measurements/inspectionTypes.js';
+
+export { CountApi } from "./domains/annotations/CountApi.js";
+export type * from "./domains/annotations/editingCountTypes.js";
