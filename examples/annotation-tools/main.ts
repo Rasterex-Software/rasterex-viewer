@@ -1,3 +1,4 @@
+import { createAnnotationImportPanel } from "./annotation-import-panel.js";
 import { createMeasurementInspector } from "./measurement-inspector.js";
 import { createViewer, SDK_VERSION } from "../../dist/index.js";
 import type {
@@ -50,6 +51,13 @@ const lines: string[] = [];
 
 const measurementInspector = createMeasurementInspector({
   context: () => ({ viewer, fileIndex, pageIndex, ready: ready && documentReady }),
+  log
+});
+
+const annotationImportPanel = createAnnotationImportPanel({
+  getViewer: () => viewer,
+  run,
+  refresh,
   log
 });
 
@@ -118,6 +126,7 @@ function controls() {
     busy || !ready || !viewer?.getInfo().capabilities?.includes("measurementAppearance");
   element<HTMLButtonElement>("connect").disabled = busy;
   measurementInspector.controls(busy);
+  annotationImportPanel.controls(busy || !documentReady);
 }
 
 async function run(operation: () => unknown | Promise<unknown>) {
@@ -213,6 +222,7 @@ function geometrySnapshot() {
 
 async function connect() {
   measurementInspector.reset();
+  annotationImportPanel.resetResult();
   const token = ++generation;
   viewer?.destroy();
   ready = false;
@@ -243,6 +253,7 @@ async function connect() {
     fileIndex = payload.fileIndex ?? 0;
     pageIndex = 0;
     documentReady = true;
+    annotationImportPanel.resetResult();
     docStatus.textContent = `Document ready: ${payload.fileName ?? "file"} · file ${fileIndex}, page ${pageIndex + 1}`;
     log("fileReady", payload);
     controls();
@@ -276,6 +287,7 @@ async function connect() {
       pageIndex = 0;
       baseline = undefined;
       measurementInspector.reset();
+      annotationImportPanel.resetResult();
     }
   });
   current.documents.on("fileLoadFailed", (payload) => {

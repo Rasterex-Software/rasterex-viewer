@@ -79,3 +79,11 @@ is included. This sample does not address the documented viewer-rotation issue.
 The parent now has a Measurement / vertex inspection disclosure. Refresh native
 measurements, inspect metadata or a chosen vertex, then explicitly select/clear
 its native handle. See [acceptance steps](MEASUREMENT-INSPECTION.md).
+
+
+## Annotation import
+
+Open **Annotation import** after the disposable sample PDF is ready.
+Use the included JSON sample or copy current records into the panel.
+See [annotation import checks](ANNOTATION-IMPORT.md) for Modern, Legacy,
+replacement, scale preservation and XML testing.

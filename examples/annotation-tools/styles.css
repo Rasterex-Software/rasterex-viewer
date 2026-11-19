@@ -194,3 +194,23 @@ pre {
   background: #fff;
   padding: 6px;
 }
+
+#annotation-import-panel select,
+#annotation-import-panel textarea {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+#annotation-import-panel textarea {
+  resize: vertical;
+  font: 12px ui-monospace, monospace;
+}
+
+#annotation-import-confirm-label[hidden] {
+  display: none;
+}
+
+#annotation-import-result {
+  max-height: 200px;
+  overflow: auto;
+}
